@@ -41,3 +41,12 @@ AI Core offers a Chat Area for data handling and models testing where users can:
 - Simulate workflows, ensuring that agents, data flows, and AI models work together as intended.
 - Visualize key metrics such as response times, accuracy, and cost impact of various AI tasks.
 - Chat provides a safe, user-friendly environment to prototype ideas quickly and debug workflows before full-scale deployment.
+
+## Settings, Users, Debug
+// todo
+
+## Deployment
+// todo
+
+## Usage examples
+// todo
