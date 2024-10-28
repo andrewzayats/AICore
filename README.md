@@ -23,12 +23,14 @@ AI Core includes agents, modular components that enhance your AI workflows by au
 Developers can create custom agents or use predefined ones available in the platform to tailor solutions to specific needs. This modular design ensures flexibility and reduces development time for complex AI-driven applications.
 
 ## 🪄 Available LLMs
-AI Core currently supports the following large language models, offering flexibility for various use cases:
+Large Language Models (LLMs) are advanced AI models trained on vast amounts of text data to understand and generate human-like language. They can perform a variety of tasks, including answering questions, summarizing documents, writing code, and engaging in conversational interactions. LLMs are essential for building intelligent, language-based applications such as chatbots, virtual assistants, and content generation tools.
 
-- GPT-4o-mini: A lightweight version optimized for fast inference and low-resource environments, suitable for tasks requiring quick responses with reduced computational costs.
-- GPT-4o: A more powerful model, providing enhanced accuracy and broader language capabilities, ideal for complex AI tasks such as advanced natural language understanding, summarization, and conversational interfaces.
+AI Core currently supports the following LLMs:
+
+- GPT-4o-mini: A lightweight version optimized for fast inference and low-resource environments, making it ideal for quick-response scenarios with minimal infrastructure requirements.
+- GPT-4o: A more powerful model offering greater accuracy and broader language capabilities, suitable for demanding tasks like advanced natural language understanding and summarization.
   
-These models ensure that AI Core can meet both performance-oriented and high-accuracy needs, catering to a wide range of project requirements.
+With these models, AI Core ensures a balanced approach, providing options for both performance-efficient and high-accuracy solutions, meeting a variety of project needs.
 
 ## 💬 Chat
 Playground 
