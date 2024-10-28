@@ -2,12 +2,40 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/VIAcode/AICore/blob/main/LICENSE)
 
-🤖 The AI Core is an open-source toolkit that streamlines the development, deployment, and management of AI-based applications. Whether you’re leveraging Azure AI, Azure OpenAI, or custom models, this platform provides an all-in-one solution. With built-in support for agent workflows, session management, user management, and cost tracking, the platform ensures a secure and scalable environment for all your AI needs. The platform is available as a source code and a Docker image for seamless integration.
+The AI Core is an open-source toolkit that streamlines the development, deployment, and management of AI-based applications. Whether you’re leveraging Azure AI, Azure OpenAI, or custom models, this platform provides an all-in-one solution. With built-in support for agent workflows, session management, user management, and cost tracking, the platform ensures a secure and scalable environment for all your AI needs. The platform is available as a source code and a Docker image for seamless integration.
 
-## Key Features
+## 💡 Key Features
 -	AI Models Integration: Manage different types of AI models effortlessly, with built-in support for Azure Open AI, Azure AI, Azure AI Document Intelligence and custom models.
 -	Agents & Flows: Enable complex workflows and AI-driven tasks with customizable agents and composite workflows.
 -	RAG skills: link with data sources and use retrieval-augmented generation to gather information
 -	User Management: Manage users and groups securely, with support for Single Sign-On (SSO) and Microsoft Entra ID integration.
 -	Cost Control: Gain full visibility and control over AI-related costs by managing usage across users, models, and agents.
 -	AI Jobs Scheduler: Schedule and run background agents or workflows, automating repetitive tasks to improve efficiency.
+
+## 🤖 Agents
+AI Core includes agents, modular components that enhance your AI workflows by automating specific tasks or integrating third-party services. Agents act as independent processes within the system, facilitating functions such as:
+
+- Data preprocessing or enrichment
+- Triggering external APIs
+- Scheduling tasks or recurring jobs
+- Supporting domain-specific operations
+  
+Developers can create custom agents or use predefined ones available in the platform to tailor solutions to specific needs. This modular design ensures flexibility and reduces development time for complex AI-driven applications.
+
+## 🪄 Available LLMs
+AI Core currently supports the following large language models, offering flexibility for various use cases:
+
+- GPT-4o-mini: A lightweight version optimized for fast inference and low-resource environments, suitable for tasks requiring quick responses with reduced computational costs.
+- GPT-4o: A more powerful model, providing enhanced accuracy and broader language capabilities, ideal for complex AI tasks such as advanced natural language understanding, summarization, and conversational interfaces.
+  
+These models ensure that AI Core can meet both performance-oriented and high-accuracy needs, catering to a wide range of project requirements.
+
+## 💬 Chat
+Playground 
+AI Core offers a Chat Area for data handling and models testing where users can:
+
+- Experiment with data inputs and outputs, gaining insights into model behavior in real time.
+- Test various models and configurations.
+- Simulate workflows, ensuring that agents, data flows, and AI models work together as intended.
+- Visualize key metrics such as response times, accuracy, and cost impact of various AI tasks.
+- Chat provides a safe, user-friendly environment to prototype ideas quickly and debug workflows before full-scale deployment.
