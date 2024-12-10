@@ -1,0 +1,7 @@
+services:
+  ai-core-api:
+    image: ai-core-api-local
+    build:
+      context: .
+      dockerfile: AiCoreApi/Dockerfile
+    pull_policy: build

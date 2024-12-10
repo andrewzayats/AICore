@@ -1,0 +1,32 @@
+services:
+  file-ingestion-service:
+    image: viacoderegistry.azurecr.io/file-ingestion:latest
+    restart: always
+    container_name: file-ingestion
+    environment:
+      - ASPNETCORE_URLS=http://+:80
+      - Service__Proxy=http://host.docker.internal:8888
+      - Service__IngestionTimeout=00:10:00
+    ports:
+      - "7880:80"
+    networks:
+      - file-ingestion-network
+
+  memory-db-qdrant:
+    image: qdrant/qdrant:v1.9.2
+    restart: always
+    container_name: memory-db-qdrant
+    ports:
+      - "6338:6333"
+      - "6339:6334"
+    volumes:
+      - qdrant-db-volume:/qdrant/storage
+    networks:
+      - file-ingestion-network
+
+volumes:
+  qdrant-db-volume:
+
+networks:
+  file-ingestion-network:
+    driver: bridge

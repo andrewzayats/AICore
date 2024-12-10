@@ -1,0 +1,91 @@
+services:
+  ai-core-api:
+    image: viacoderegistry.azurecr.io/ai-core-api:latest
+    restart: always
+    container_name: ai-core-api
+    environment:
+      - ISMAININSTANCE=true
+      - PRODUCTVERSION=1.11
+      - ASPNETCORE_URLS=http://+:80
+      - AUTOCOMPACTLARGEOBJECTHEAP=true  
+      - DBSERVER=host.docker.internal
+      - DBPORT=<database-port>
+      - DBNAME=<database-name>
+      - DBUSER=<database-username>
+      - DBPASSWORD=<database-password>
+      - DBTIMEOUT=30000
+      - DBPGPOOLSIZE=30
+      - DBCONNECTIONTIMEOUT=300
+      - QDRANTURL=http://host.docker.internal:6338
+      - FILEINGESTIONURL=http://host.docker.internal:7880
+      - INGESTIONDELAY=10
+      - MAXTASKHISTORY=48
+      - MAXFILESIZE=209715200
+      - MAXPARALLELFILEINGESTIONREQUESTS=5
+      - FILEINGESTIONREQUESTTIMEOUT=10
+      - MAXHISTORYLENGTH=10
+      - TOKENEXPIRATIONTIMEMINUTES=60
+      - PROXY=
+      - NOINFORMATIONFOUNDTEXT=No relevant information found
+      - MAXTOKENSPERUSERPERDAYGPT35=100000
+      - MAXTOKENSPERUSERPERDAYGPT40=100000
+      - MAXTOKENSPERUSERPERDAYOTHER=100000
+      - AUTHISSUER=ViacodeAiCore
+      - AUTHAUDIENCE=ViacodeAiClient
+      - AUTHSECURITYKEY=<auth_security_key>
+      - CLIENTID=<client_id>
+      - CLIENTSECRET=<client_secret>
+      - APPURL=http://localhost:7878/api/v1
+      - LOGOURL=/static/images/logo.png
+      - MAINCOLOR=#1976d2
+      - MAINTEXTCOLOR=#000000
+      - SECONDARYTEXTCOLOR=#213547
+      - CONTRASTTEXTCOLOR=#ffffff
+      - MENUBACKCOLOR1=#ffffff
+      - MENUBACKCOLOR2=#f7f7f7
+      - BACKGROUNDCOLOR=#ffffff
+      - PAGETITLE=VIAcode AI Core
+      - ENABLEDLLMS=1,2,3,4,5
+      - JIRAAUTHURL=
+      - USEINTERNALUSERS=True
+      - FEATURE_TAGGING=True
+      - FEATURE_SETTINGS=True
+      - FEATURE_SPENTMANAGEMENT=True
+      - LOGLEVEL=Debug
+    ports:
+      - "7878:80"
+    networks:
+      - ai-core-network
+
+  ai-core-db:
+    container_name: ai-core-db
+    image: postgres:16.1
+    restart: always
+    environment:
+      - POSTGRES_PASSWORD=<database-user-password>
+      - POSTGRES_USER=<database-username>
+      - POSTGRES_DB=<database-name>
+      - PGDATA=/data/postgres
+    command:
+      - -c
+      - work_mem=32MB
+      - -c
+      - maintenance_work_mem=256MB
+      - -c
+      - shared_buffers=1GB
+    volumes:
+      - ai-core-db-volume:/data/postgres
+      - ai-core-default-db-volume:/var/lib/postgresql/data
+    shm_size: 1gb
+    ports:
+      - "5439:5432"
+    networks:
+      - ai-core-network
+
+volumes:
+  ai-core-db-volume:
+  ai-core-default-db-volume:
+
+networks:
+  ai-core-network:
+    driver: bridge
