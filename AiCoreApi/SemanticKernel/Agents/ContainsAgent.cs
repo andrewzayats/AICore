@@ -1,0 +1,49 @@
+using System.Text.RegularExpressions;
+using Microsoft.SemanticKernel;
+using AiCoreApi.Models.DbModels;
+using AiCoreApi.Common;
+using System.Web;
+
+namespace AiCoreApi.SemanticKernel.Agents
+{
+    public class ContainsAgent : BaseAgent, IContainsAgent
+    {
+        private const string DebugMessageSenderName = "ContainsAgent";
+
+        private readonly ResponseAccessor _responseAccessor;
+        public ContainsAgent(
+            ResponseAccessor responseAccessor)
+        {
+            _responseAccessor = responseAccessor;
+        }
+
+        private static class AgentContentParameters
+        {
+            public const string RegexCheck = "regexCheck";
+        }
+
+        public override async Task<string> DoCall(AgentModel agent, Dictionary<string, string> parameters)
+        {
+            parameters.ToList().ForEach(p => parameters[p.Key] = HttpUtility.HtmlDecode(p.Value));
+            try
+            {
+                var inputText = parameters["parameter1"];
+                var regexCheck = agent.Content[AgentContentParameters.RegexCheck].Value;
+
+                var result = Regex.IsMatch(inputText, regexCheck);
+                _responseAccessor.AddDebugMessage(DebugMessageSenderName, "DoCall", $"Input: {inputText}\r\nRegex Check:{regexCheck}\r\nOutput:{result}");
+                return result.ToString();
+            }
+            catch(Exception e)
+            {
+                // Suppress for invalid Regex
+                return "false";
+            }
+        }
+    }
+
+    public interface IContainsAgent
+    {
+        Task AddAgent(AgentModel agent, Kernel kernel, List<string> pluginsInstructions);
+    }
+}

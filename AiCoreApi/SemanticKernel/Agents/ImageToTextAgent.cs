@@ -1,0 +1,101 @@
+using Microsoft.SemanticKernel;
+using AiCoreApi.Models.DbModels;
+using System.Web;
+using AiCoreApi.Common;
+using AiCoreApi.Data.Processors;
+using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
+using AiCoreApi.Common.Extensions;
+
+namespace AiCoreApi.SemanticKernel.Agents
+{
+    public class ImageToTextAgent : BaseAgent, IImageToTextAgent
+    {
+        private const string DebugMessageSenderName = "ImageToTextAgent";
+        public static class AgentPromptPlaceholders
+        {
+            public const string FileDataPlaceholder = "firstFileData";
+        }
+
+        private static class AgentContentParameters
+        {
+            public const string Base64Image = "base64Image";
+            public const string MimeType = "mimeType";
+            public const string Prompt = "prompt";
+            public const string SystemMessage = "systemMessage";
+        }
+
+        private readonly ISemanticKernelProvider _semanticKernelProvider;
+        private readonly RequestAccessor _requestAccessor;
+        private readonly ResponseAccessor _responseAccessor;
+        private readonly IConnectionProcessor _connectionProcessor;
+        private readonly ILogger<ImageToTextAgent> _logger;
+
+        public ImageToTextAgent(
+            ISemanticKernelProvider semanticKernelProvider,
+            RequestAccessor requestAccessor,
+            ResponseAccessor responseAccessor,
+            IConnectionProcessor connectionProcessor,
+            ILogger<ImageToTextAgent> logger)
+        {
+            _semanticKernelProvider = semanticKernelProvider;
+            _requestAccessor = requestAccessor;
+            _responseAccessor = responseAccessor;
+            _connectionProcessor = connectionProcessor;
+            _logger = logger;
+        }
+
+        public override async Task<string> DoCall(
+            AgentModel agent, 
+            Dictionary<string, string> parameters)
+        {
+            parameters.ToList().ForEach(p => parameters[p.Key] = HttpUtility.HtmlDecode(p.Value));
+
+            var base64Image = ApplyParameters(agent.Content[AgentContentParameters.Base64Image].Value, parameters);
+            var mimeType = ApplyParameters(agent.Content[AgentContentParameters.MimeType].Value, parameters);
+            var prompt = ApplyParameters(agent.Content[AgentContentParameters.Prompt].Value, parameters);
+            var systemMessage = agent.Content.ContainsKey(AgentContentParameters.SystemMessage) ? agent.Content[AgentContentParameters.SystemMessage].Value : string.Empty;
+
+            if (_requestAccessor.MessageDialog.Messages!.Last().HasFiles())
+            {
+                base64Image = ApplyParameters(base64Image, new Dictionary<string, string>
+                {
+                    {AgentPromptPlaceholders.FileDataPlaceholder, _requestAccessor.MessageDialog.Messages!.Last().Files!.First().Base64Data},
+                });
+            }
+            _responseAccessor.AddDebugMessage(DebugMessageSenderName, "DoCall Request", $"Prompt:\r\n{prompt}\r\n\r\nSystem Message:\r\n{systemMessage}\r\n\r\nImage ({mimeType}):\r\n{base64Image.Length} bytes");
+
+            var imageData = Convert.FromBase64String(base64Image.StripBase64());
+            var connections = await _connectionProcessor.List();
+            var llmConnection = GetConnection(_requestAccessor, _responseAccessor, connections, ConnectionType.AzureOpenAiLlm, DebugMessageSenderName, agent.LlmType);
+            var kernel = _semanticKernelProvider.GetKernel(llmConnection);
+            var chat = kernel.GetRequiredService<IChatCompletionService>();
+            var history = new ChatHistory();
+            if(!string.IsNullOrEmpty(systemMessage))
+                history.AddSystemMessage(systemMessage);
+            history.AddSystemMessage(systemMessage);
+            var message = new ChatMessageContentItemCollection
+            {
+                new TextContent(prompt),
+                new ImageContent(imageData, mimeType)
+            };
+            history.AddUserMessage(message);
+            var executionSettings = new OpenAIPromptExecutionSettings
+            {
+                Temperature = Convert.ToDouble(llmConnection.Content.ContainsKey("temperature") ? llmConnection.Content["temperature"] : 0),
+            };
+            var resultContent = await chat.GetChatMessageContentAsync(history, executionSettings);
+            var result = resultContent.Content ?? "";
+
+            _responseAccessor.AddDebugMessage(DebugMessageSenderName, "DoCall Response", result);
+            _logger.LogInformation("{Login}, Action:{Action}, ConnectionName: {ConnectionName}",
+                _requestAccessor.Login, "ImageToText", llmConnection.Name);
+            return result;
+        }
+    }
+
+    public interface IImageToTextAgent
+    {
+        Task AddAgent(AgentModel agent, Kernel kernel, List<string> pluginsInstructions);
+    }
+}

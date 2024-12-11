@@ -1,0 +1,60 @@
+@Service_HostAddress = http://localhost:7880
+
+@UrlFileId = pushkin-1
+
+### Url-content upload request
+
+POST {{Service_HostAddress}}/files
+Content-Type: application/json
+Accept: application/json
+
+{
+  "id": "{{UrlFileId}}",
+  "name": "Pushkin.url",
+  "content": "aHR0cHM6Ly93d3cuZ3V0ZW5iZXJnLm9yZy9jYWNoZS9lcHViLzUzMTYvcGc1MzE2LWltYWdlcy5odG1s",
+  "tags": {
+    "ingestion": [
+      "test"
+    ]
+  }
+}
+
+### Invalid document id
+
+POST {{Service_HostAddress}}/files
+Content-Type: application/json
+Accept: application/json
+
+{
+  "id": "   ",
+  "name": "invalid-doc-id.txt",
+  "content": "",
+  "tags": {}
+}
+
+### Invalid document tags
+
+POST {{Service_HostAddress}}/files
+Content-Type: application/json
+Accept: application/json
+
+{
+  "id": "invalid-doc-tag",
+  "name": "invalid-doc-tag.txt",
+  "content": "",
+  "tags": {
+    "valid": ["tag"],
+    "__custom_starts_with_underscores": [],
+    "__file_id": [],
+    "__file_part": [],
+    "__file_type": [],
+    "__synth": []
+  }
+}
+
+### Delete previously uploaded file represented by url
+
+DELETE {{Service_HostAddress}}/files/{{UrlFileId}}
+Accept: application/json
+
+###

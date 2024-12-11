@@ -1,0 +1,9 @@
+services:
+  file-ingestion-service:
+    image: file-ingestion-local
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    build:
+      context: .
+      dockerfile: Service/Dockerfile
+    pull_policy: build

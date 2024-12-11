@@ -1,0 +1,23 @@
+﻿
+	To create a new migration:
+	1. First do changes in code and DB context
+	2. Open console in cmd or integrated in VS and ensure that your location the solution directory
+	3. Copy this command: dotnet ef migrations add [MigrationName] --project .\AiCoreApi\AiCoreApi.csproj --startup-project .\AiCoreApi\AiCoreApi.csproj
+	4. Replace [MigrationName] with your name
+	5. Run migration
+	6. When successed open new migration file in Migration folder
+	7. Find two methods Up and Down.
+	8. Add logic there
+	9. Test
+	10. Repeat steps above if necessary
+
+
+	Note: Sometime migration for some reason can have issues. If you got error with 
+	      unresolved classes in Db please try to remove bin and obj folders and try again.
+
+
+    Important for all devs: 
+		Try to avoid implement any complecated logic in constructors
+		because DI mechanism when resolveing object will call what inside of it
+		that can cause unpredictable errors
+	                     
