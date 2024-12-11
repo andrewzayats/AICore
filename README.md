@@ -44,6 +44,45 @@ AI Core offers a Chat Area for data handling and models testing where users can:
 - Visualize key metrics such as response times, accuracy, and cost impact of various AI tasks.
 - Chat provides a safe, user-friendly environment to prototype ideas quickly and debug workflows before full-scale deployment.
 
+# AI Core API
+
+## Search
+
+### Overview
+
+The Search API in AI Core empowers users to perform full-text and vector-based searches across indexed documents. With support for role-based access control (RBAC), and embedding models, the Search API serves as a powerful resource for locating relevant content with precision.
+
+Users interact with the Search API through several parameters, including the connection name, query string, tagging options. AI Core’s search prioritize relevance, allowing users to quickly access critical information across large data sets.
+
+### Sample API Request Format
+
+The Search API retrieve search results based on the query. Admins can replicate or automate these requests using the following format:
+
+- **API Endpoint**: `/api/v1/copilot/search`
+- **Query Parameters**:
+  - `connection_name`: Specifies the embedding connection name, e.g., `My Embedding`.
+  - `q`: Contains the search query, e.g., `search text`.
+  - `tags`: Comma-separated list of tag IDs, e.g., `1,2,3,4,5,6,7,8`.
+
+- **Sample Request**:
+  ```plaintext
+  GET: http://localhost:7878/api/v1/copilot/search?connection_name=My%20Embedding&q=search%20text&tags=1,2,3,4,5,6,7,8
+  HEADER: Authorization: Bearer bearer-token-value
+  ```
+
+This format provides flexibility for automated search requests and programmatic interactions with AI Core.
+
+### Best Practices and Considerations
+
+1. **Tag Utilization**: Apply relevant tags to indexed documents to enforce security and filter search results.
+2. **Model Selection**: Choose embedding models that align with the document corpus, ensuring vector search quality.
+3. **Optimize Queries**: Use concise and specific search terms for more accurate retrieval.
+
+
+
+
+
+
 ## Settings, Users, Debug
 // todo
 
