@@ -1,4 +1,4 @@
-# AI Core Cost Management API
+# Cost API
 
 This document provides an overview of the AI Core Cost Management API, which enables administrators to monitor token consumption, expenses, and calculate predictive costs programmatically. This API is designed to support cost tracking, usage analysis, and future cost forecasting for AI Core services.
 
