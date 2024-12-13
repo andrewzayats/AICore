@@ -42,6 +42,63 @@ This API is intended for use by developers and system administrators managing AI
 **Response:**
 - **Code 200:** Returns total spending data.
 
+**Example response:**
+
+```
+[
+    {
+        "costDayByDay": [
+            0.0,
+            0.0,
+            0.0003168,
+            0.0003168,
+            0.0003168,
+            0.0003168,
+            0.44654365,
+            0.47947975,
+            0.48242845,
+            0.53037305,
+            1.07168300,
+            1.07714220,
+            1.09335470,
+            1.11970220,
+            1.11970220
+        ],
+        "loginId": 0,
+        "login": "Total",
+        "loginType": "",
+        "tokensOutgoing": 1732051,
+        "tokensIncoming": 136690,
+        "cost": 15.06060385
+    },
+    {
+        "costDayByDay": [
+            0.0,
+            0.0,
+            0.0003168,
+            0.0003168,
+            0.0003168,
+            0.09838815,
+            0.44654365,
+            0.48185035,
+            0.48242845,
+            0.53037305,
+            1.07714220,
+            1.09335470,
+            1.09335470,
+            1.11970220,
+            1.11970220
+        ],
+        "loginId": 1,
+        "login": "admin@viacode.com",
+        "loginType": "Password",
+        "tokensOutgoing": 1732051,
+        "tokensIncoming": 136690,
+        "cost": 15.06060385
+    }
+]
+```
+
 ---
 
 ### 2. Get Token Cost
