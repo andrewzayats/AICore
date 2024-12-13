@@ -6,13 +6,25 @@ This document provides details about the Authentication, User Management, and Pe
 
 ## Overview
 
-AI Core provides robust authentication mechanisms, including internal login, Microsoft SSO integration, and API Basic Authentication. User Management allows the creation and management of users, roles, and groups, while Permissions offer flexible tag-based access control.
+This document details the authentication, user management, and permissions configuration options in AI Core. The platform provides multiple authentication methods, including Microsoft SSO integration, and offers fine-grained control over user access through tags, groups, and roles, all of which are configurable via an Active Directory (AD) integration. The settings described here allow administrators to manage access, establish user limits, and ensure secure interactions with AI Core services.
 
 ---
 
+## Introduction
+Authentication and user management in AI Core ensure that only authorized users can access the platform and use agents or data sources as intended. AI Core leverages both internal user accounts and SSO integration with Microsoft for user login, with additional configurations available to enforce access controls through Active Directory (AD) synchronization. By using tags, roles, and group-based permissions, administrators can tightly manage access to sensitive data and restrict interactions with the system’s capabilities.
+
 ## Authentication API
 
-### 1. Authorization Endpoint
+### Internal User Accounts
+AI Core provides an internal login mechanism for users who do not utilize SSO. When enabled, users can enter their AI Core username and password directly on the login page to authenticate.
+
+### Microsoft SSO
+For organizations using Microsoft environments, AI Core supports SSO through Microsoft, allowing users to authenticate via their Microsoft AD credentials. When SSO is enabled, users see a "Login with Microsoft" option on the AI Core login page.
+
+### Basic Authentication for API Endpoints
+AI Core allows Basic Authentication for API endpoints if PKCE Authentication Code Flow is challenging to implement on the client side.
+
+### 1. Authentication Endpoint
 
 #### **GET** `/api/v1/connect/authorize`
 
@@ -74,6 +86,8 @@ AI Core provides robust authentication mechanisms, including internal login, Mic
 
 ## User Management API
 
+The Users API provides an interface for adding, editing, and managing user profiles. Admin users can define user roles, daily token limits, and assign tags for role-based access control.
+
 ### 1. User Profile Management
 
 #### **GET** `/api/v1/user/{loginId}`
@@ -101,6 +115,12 @@ AI Core provides robust authentication mechanisms, including internal login, Mic
 ---
 
 ## Permissions API
+
+### Tag-Based Access Control
+Tags provide a flexible mechanism to manage access to agents and data sources. Tags restrict access to users or groups who have matching tags.
+
+### Roles and Groups Synchronization with AD
+Roles link AI Core tags with AD roles, enabling seamless synchronization. When an SSO user logs into AI Core, the system checks their AD role and assigns tags accordingly.
 
 ### 1. RBAC Group Synchronization
 
@@ -167,6 +187,9 @@ AI Core provides robust authentication mechanisms, including internal login, Mic
 ---
 
 ## SSO API
+
+### Managing SSO Clients
+SSO (Single Sign-On) Clients allow users to authenticate via external identity providers, such as Microsoft Azure Active Directory, providing a seamless and secure login experience for users.
 
 ### 1. SSO Client Management
 
