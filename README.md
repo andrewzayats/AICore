@@ -46,12 +46,12 @@ AI Core offers a Chat Area for data handling and models testing where users can:
 
 # AI Core API referenses
 
-[Auth, User Management, and Permissions API.md](https://github.com/VIAcode/AICore/blob/main/docs/API/Auth%2C%20User%20Management%2C%20and%20Permissions.md)
-[Chat API](https://github.com/VIAcode/AICore/blob/main/docs/API/Chat.md)
-[Connections API](https://github.com/VIAcode/AICore/blob/main/docs/API/Connections.md)
-[Cost API](https://github.com/VIAcode/AICore/blob/main/docs/API/Cost.md)
-[Search API](https://github.com/VIAcode/AICore/blob/main/docs/API/Search.md)
-[Settings API](https://github.com/VIAcode/AICore/blob/main/docs/API/Settings.md)
+- [Auth, User Management, and Permissions API.md](https://github.com/VIAcode/AICore/blob/main/docs/API/Auth%2C%20User%20Management%2C%20and%20Permissions.md)
+- [Chat API](https://github.com/VIAcode/AICore/blob/main/docs/API/Chat.md)
+- [Connections API](https://github.com/VIAcode/AICore/blob/main/docs/API/Connections.md)
+- [Cost API](https://github.com/VIAcode/AICore/blob/main/docs/API/Cost.md)
+- [Search API](https://github.com/VIAcode/AICore/blob/main/docs/API/Search.md)
+- [Settings API](https://github.com/VIAcode/AICore/blob/main/docs/API/Settings.md)
 
 
 ## Deployment
