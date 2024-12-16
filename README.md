@@ -50,6 +50,7 @@ AI Core offers a Chat Area for data handling and models testing where users can:
 - [Chat API](https://github.com/VIAcode/AICore/blob/main/docs/API/Chat.md)
 - [Connections API](https://github.com/VIAcode/AICore/blob/main/docs/API/Connections.md)
 - [Cost API](https://github.com/VIAcode/AICore/blob/main/docs/API/Cost.md)
+- [Groups API](https://github.com/VIAcode/AICore/blob/main/docs/API/Groups.md)
 - [Search API](https://github.com/VIAcode/AICore/blob/main/docs/API/Search.md)
 - [Settings API](https://github.com/VIAcode/AICore/blob/main/docs/API/Settings.md)
 - [Tags API](https://github.com/VIAcode/AICore/blob/main/docs/API/Tags.md)
