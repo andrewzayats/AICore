@@ -4,7 +4,7 @@ This document provides details about the Authentication, User Management, and Pe
 
 ---
 
-## 
+## Table of Contents
 
 1. [Overview](#overview)
 2. [Authentication API](#authentication-api)
