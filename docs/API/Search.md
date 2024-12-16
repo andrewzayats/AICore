@@ -17,13 +17,13 @@ The Search API retrieve search results based on the query. Admins can replicate 
   - `tags`: Comma-separated list of tag IDs, e.g., `1,2,3,4,5,6,7,8`.
 
 - **Sample Request**:
-  ```plaintext
+```
   GET: http://localhost:7878/api/v1/copilot/search?connection_name=My%20Embedding&q=search%20text&tags=1,2,3,4,5,6,7,8
   HEADER: Authorization: Bearer bearer-token-value
-  ```
+```
 
   - **Response Sample**:
-  ```plaintext
+```
   [
     {
         "sender": "",
@@ -41,8 +41,8 @@ The Search API retrieve search results based on the query. Admins can replicate 
             }
         ]
     }
-]
-  ```
+  ]
+```
 
 This format provides flexibility for automated search requests and programmatic interactions with AI Core.
 
