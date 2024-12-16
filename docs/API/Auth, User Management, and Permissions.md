@@ -4,6 +4,17 @@ This document provides details about the Authentication, User Management, and Pe
 
 ---
 
+## 
+
+1. [Overview](#overview)
+2. [Authentication API](#authentication-api)
+3. [User Management API](#user-management-api)
+4. [Permissions API](#permissions-api)
+5. [SSO API](#sso-api)
+6. [Best Practices](#best-practices)
+
+---
+
 ## Overview
 
 This document details the authentication, user management, and permissions configuration options in AI Core. The platform provides multiple authentication methods, including Microsoft SSO integration, and offers fine-grained control over user access through tags, groups, and roles, all of which are configurable via an Active Directory (AD) integration. The settings described here allow administrators to manage access, establish user limits, and ensure secure interactions with AI Core services.
