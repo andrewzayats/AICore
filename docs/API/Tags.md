@@ -24,6 +24,21 @@ Tags are essential for controlling access to data sources and agents. They can b
 #### Response:
 - **200 OK**: Returns the tag details.
 
+#### Response Example:
+```
+{
+    "tagId": 2,
+    "name": "Docs",
+    "description": "Wiki copy",
+    "color": "#fdeccc",
+    "created": "2024-12-02T03:49:23.556267Z",
+    "createdBy": "admin@viacode.com",
+    "groups": [],
+    "logins": [],
+    "ingestions": []
+}
+```
+
 ---
 
 ### 2. **Update a Tag**
@@ -104,6 +119,17 @@ Tags are essential for controlling access to data sources and agents. They can b
 }
 ```
 
+
+#### Request Body Example:
+```json
+{
+  "tagId": 2,
+  "name": "Docs",
+  "description": "Wiki copy tag",
+  "color": "#fdeccc"
+}
+```
+
 - **200 OK**: Returns the tag details.
 
 ---
@@ -114,6 +140,35 @@ Tags are essential for controlling access to data sources and agents. They can b
 
 #### Response:
 - **200 OK**: Returns the tag details.
+
+#### Response Example:
+```
+[
+    {
+        "tagId": 1,
+        "name": "fundraising",
+        "description": "",
+        "color": "#9ea2bc",
+        "created": "2024-11-26T12:46:50.884544Z",
+        "createdBy": "admin@viacode.com",
+        "groups": [],
+        "logins": [],
+        "ingestions": []
+    },
+    {
+        "tagId": 2,
+        "name": "Docs",
+        "description": "Wiki copy",
+        "color": "#fdeccc",
+        "created": "2024-12-02T03:49:23.556267Z",
+        "createdBy": "admin@viacode.com",
+        "groups": [],
+        "logins": [],
+        "ingestions": []
+    }
+]
+```
+
 
 ---
 

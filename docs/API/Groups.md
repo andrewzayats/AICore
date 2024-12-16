@@ -128,6 +128,6 @@ The **Groups Management API** provides functionality to manage user groups effic
 
 ## Notes
 
-1. **ag Assignment:**: Tags assigned to a group are automatically applied to all its members, streamlining permissions management.
+1. **Tag Assignment:**: Tags assigned to a group are automatically applied to all its members, streamlining permissions management.
 2. **User Management:**: Users can be added or removed from a group to adjust their access dynamically.
 3. **Scalability**: Grouping facilitates efficient administration for large organizations with role-based access control needs.

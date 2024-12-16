@@ -44,7 +44,7 @@ AI Core offers a Chat Area for data handling and models testing where users can:
 - Visualize key metrics such as response times, accuracy, and cost impact of various AI tasks.
 - Chat provides a safe, user-friendly environment to prototype ideas quickly and debug workflows before full-scale deployment.
 
-# AI Core API referenses
+# AI Core API References
 
 - [Auth, User Management, and Permissions API.md](https://github.com/VIAcode/AICore/blob/main/docs/API/Auth%2C%20User%20Management%2C%20and%20Permissions.md)
 - [Chat API](https://github.com/VIAcode/AICore/blob/main/docs/API/Chat.md)
