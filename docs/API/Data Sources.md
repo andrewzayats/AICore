@@ -310,8 +310,6 @@ Create a new data ingestion.
   ],
   "status": 1
 }
-tatus": 1
-}
 ```
 
 
