@@ -109,6 +109,47 @@ The Users API provides an interface for adding, editing, and managing user profi
 **Responses:**
 - `200`: User data retrieved.
 
+**Example Responses**
+```
+{
+    "loginId": 1,
+    "login": "admin@viacode.com",
+    "fullName": "Admin",
+    "email": "admin@viacode.com",
+    "role": "Admin",
+    "isEnabled": true,
+    "loginType": "Password",
+    "tags": [
+        {
+            "tagId": 1,
+            "name": "fundraising",
+            "description": "",
+            "color": "#9ea2bc",
+            "created": "2024-11-26T12:46:50.884544Z",
+            "createdBy": "admin@viacode.com",
+            "groups": [],
+            "logins": [],
+            "ingestions": []
+        },
+        {
+            "tagId": 2,
+            "name": "Docs",
+            "description": "Wiki copy",
+            "color": "#fdeccc",
+            "created": "2024-12-02T03:49:23.556267Z",
+            "createdBy": "admin@viacode.com",
+            "groups": [],
+            "logins": [],
+            "ingestions": []
+        }
+    ],
+    "groups": [],
+    "created": "2024-10-27T21:01:37.835101Z",
+    "createdBy": "system",
+    "tokensLimit": 0
+}
+```
+
 #### **PUT** `/api/v1/user/{loginId}`
 
 **Parameters:**
@@ -122,6 +163,42 @@ The Users API provides an interface for adding, editing, and managing user profi
 
 **Responses:**
 - `200`: User updated successfully.
+
+**Example Responses**
+```
+{
+  "fullName": "Admin Full Name",
+  "email": "admin@viacode.com",
+  "role": "Admin",
+  "isEnabled": true,
+  "tags": [
+    {
+      "tagId": 1,
+      "name": "fundraising",
+      "description": "",
+      "color": "#9ea2bc",
+      "created": "2024-11-26T12:46:50.884544Z",
+      "createdBy": "admin@viacode.com",
+      "groups": [],
+      "logins": [],
+      "ingestions": []
+    },
+    {
+      "tagId": 2,
+      "name": "Docs",
+      "description": "Wiki copy",
+      "color": "#fdeccc",
+      "created": "2024-12-02T03:49:23.556267Z",
+      "createdBy": "admin@viacode.com",
+      "groups": [],
+      "logins": [],
+      "ingestions": []
+    }
+  ],
+  "groups": [],
+  "tokensLimit": 0
+}
+```
 
 ---
 
