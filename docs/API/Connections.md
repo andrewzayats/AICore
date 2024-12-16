@@ -59,6 +59,17 @@ Create a new connection with the required parameters.
 **Responses**
 - **200 OK**: Connection created successfully.
 
+**Request Example**
+```
+{
+  "type": 4,
+  "name": "Test ",
+  "content": {
+    "bingApiKey": "Demo_Key"
+  }
+}
+```
+
 ---
 
 ### Update an Existing Connection
@@ -81,6 +92,21 @@ Update an existing connection by specifying its ID.
   },
   "created": "2024-12-12T09:34:26.947Z",
   "createdBy": "string",
+  "canBeDeleted": true
+}
+```
+
+**Example**
+```
+{
+  "connectionId": 11,
+  "name": "Test updated",
+  "type": 4,
+  "content": {
+    "bingApiKey": "Demo_KEy"
+  },
+  "created": "2024-12-16T08:41:30.43217Z",
+  "createdBy": "admin@viacode.com",
   "canBeDeleted": true
 }
 ```
@@ -111,6 +137,8 @@ Retrieve details of a specific connection by its ID.
 
 **Responses**
 - **200 OK**: Connection details returned.
+
+---
 
 ## Best Practices
 - **Centralize Connection Management**: Define connections at the start of your project to ensure consistent and secure access across all agents.
