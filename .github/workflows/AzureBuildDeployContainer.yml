@@ -1,0 +1,23 @@
+name: Build and Deploy Container
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: azure/docker-login@v1
+      with:
+          login-server: viacodeaicore.azurecr.io
+          username: ${{ secrets.ACR-USERNAME }}
+          password: ${{ secrets.ACR-PASSWORD }}
+    - run: |
+      docker build . -t viacodeaicore.azurecr.io/aicore:${{ github.sha }}
+      docker push viacodeaicore.azurecr.io/aicore:${{ github.sha }}
