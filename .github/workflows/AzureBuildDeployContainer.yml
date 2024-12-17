@@ -18,6 +18,6 @@ jobs:
           login-server: viacodeaicore.azurecr.io
           username: ${{ secrets.ACR-USERNAME }}
           password: ${{ secrets.ACR-PASSWORD }}
-    - run: |
-      docker build . -t viacodeaicore.azurecr.io/aicore:${{ github.sha }}
-      docker push viacodeaicore.azurecr.io/aicore:${{ github.sha }}
+    - run:
+        docker build . -t viacodeaicore.azurecr.io/aicore:${{ github.sha }}
+        docker push viacodeaicore.azurecr.io/aicore:${{ github.sha }}
