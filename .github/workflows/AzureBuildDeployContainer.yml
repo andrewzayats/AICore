@@ -1,4 +1,4 @@
-name: Build and Deploy Container
+name: Build and Push to ACR
 
 on:
   workflow_dispatch:
@@ -8,16 +8,19 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build:
+  build-and-push:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - uses: azure/docker-login@v1
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Log in to ACR
+      uses: azure/docker-login@v1
       with:
           login-server: viacodeaicore.azurecr.io
           username: ${{ secrets.ACR-USERNAME }}
           password: ${{ secrets.ACR-PASSWORD }}
-    - run:
-        docker build . -t viacodeaicore.azurecr.io/aicore:${{ github.sha }}
-        docker push viacodeaicore.azurecr.io/aicore:${{ github.sha }}
+
+    - name: Build and Push Docker Image
+      run: IMAGE_NAME=viacodeaicore.azurecr.io/aicore:${{ github.sha }} docker build -t $IMAGE_NAME . docker push $IMAGE_NAME
