@@ -27,4 +27,3 @@ stages:
         repository: 'AICore'
         command: 'buildAndPush'
         Dockerfile: 'Dockerfile'
-        buildContext: 'src/'
