@@ -24,6 +24,6 @@ stages:
       displayName: Build Docker Image
       inputs:
         containerRegistry: 'VIAcode DockerHub'
-        repository: 'AICore'
+        repository: 'viacode/ai-core'
         command: 'buildAndPush'
         Dockerfile: 'Dockerfile'
