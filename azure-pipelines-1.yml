@@ -21,8 +21,10 @@ stages:
       vmImage: ubuntu-latest
     steps:
     - task: Docker@2
+      displayName: Build Docker Image
       inputs:
         containerRegistry: 'VIAcode DockerHub'
         repository: 'AICore'
         command: 'buildAndPush'
-        Dockerfile: '**/Dockerfile'
+        Dockerfile: 'Dockerfile'
+        buildContext: 'src/'
