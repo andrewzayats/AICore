@@ -26,6 +26,6 @@ stages:
         containerRegistry: 'VIAcode DockerHub'
         repository: 'viacode/ai-core-file-ingestion'
         command: 'buildAndPush'
-        dockerfile: 'Dockerfile'
+        dockerfile: '$(Build.SourcesDirectory)/Ingestion/FileIngestion/Service/Dockerfile'
         tags: |
           $(tag)
