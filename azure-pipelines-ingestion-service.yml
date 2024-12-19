@@ -23,7 +23,9 @@ stages:
     - task: Docker@2
       displayName: Build Ingestion service image
       inputs:
-        command: build
-        dockerfile: '$(Build.SourcesDirectory)/Ingestion/FileIngestion/Service/Dockerfile'
+        containerRegistry: 'VIAcode DockerHub'
+        repository: 'viacode/ai-core-file-ingestion'
+        command: 'buildAndPush'
+        dockerfile: 'Dockerfile'
         tags: |
           $(tag)
