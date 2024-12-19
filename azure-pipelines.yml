@@ -1,49 +1,29 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
+# Docker
+# Build a Docker image
+# https://docs.microsoft.com/azure/devops/pipelines/languages/docker
 
 trigger:
 - main
 
-pool:
-  vmImage: ubuntu-latest
+resources:
+- repo: self
 
 variables:
-  dockerHubServiceConnection: 'VIAcode DockerHub'  # Docker Hub service connection name
-  dockerImageName: 'AICore'  # Replace with your Docker image name
-  dockerTag: 'latest'  # Replace with the desired Docker image tag
+  tag: '$(Build.BuildId)'
 
-steps:
-# Checkout the code from GitHub
-- task: Checkout@1
-  inputs:
-    fetchDepth: 0
-
-# Log in to Docker Hub
-- task: Docker@2
-  displayName: Log in to Docker Hub
-  inputs:
-    containerRegistry: $(dockerHubServiceConnection)
-    command: login
-
-# Build the Docker image
-- task: Docker@2
-  displayName: Build Docker Image
-  inputs:
-    containerRegistry: $(dockerHubServiceConnection)
-    repository: $(dockerImageName)
-    command: build
-    Dockerfile: '**/Dockerfile'
-    tags: |
-      $(dockerTag)
-
-# Push the Docker image to Docker Hub
-- task: Docker@2
-  displayName: Push Docker Image
-  inputs:
-    containerRegistry: $(dockerHubServiceConnection)
-    repository: $(dockerImageName)
-    command: push
-    tags: |
-      $(dockerTag)
+stages:
+- stage: Build
+  displayName: Build image
+  jobs:
+  - job: Build
+    displayName: Build
+    pool:
+      vmImage: ubuntu-latest
+    steps:
+    - task: Docker@2
+      displayName: Build Docker Image
+      inputs:
+        containerRegistry: 'VIAcode DockerHub'
+        repository: 'viacode/ai-core'
+        command: 'buildAndPush'
+        Dockerfile: 'Dockerfile'
