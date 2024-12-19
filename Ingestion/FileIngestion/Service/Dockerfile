@@ -1,7 +1,7 @@
 ﻿FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["/Ingestion/Service/Service.csproj", "Service/"]
+COPY ["/Ingestion/FileIngestion/Service/Service.csproj", "Service/"]
 RUN dotnet restore "Service/Service.csproj"
 COPY . .
 WORKDIR "/src/Service"
