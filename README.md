@@ -1,4 +1,4 @@
-# AICore
+# AICore Overview
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/VIAcode/AICore/blob/main/LICENSE)
 
@@ -57,8 +57,146 @@ AI Core offers a Chat Area for data handling and models testing where users can:
 - [Tags API](https://github.com/VIAcode/AICore/blob/main/docs/API/Tags.md)
 
 
-## Deployment
-// todo
+# Deployment
+
+This guide explains how to deploy VIAcode AI Core using the pre-built Docker images. Follow these steps to get the solution up and running efficiently.
+
+---
+
+## Prerequisites
+
+Before deploying, ensure you have the following installed and configured on your system:
+
+1. **Docker**:
+   - Download and install Docker from [Docker's official website](https://hub.docker.com/r/viacode/ai-core/).
+   - Verify the installation by running:
+     ```bash
+     docker --version
+     ```
+2. **Docker Hub Account** (Optional):
+   - If the Docker image is private, log in to Docker Hub using your credentials:
+     ```bash
+     docker login
+     ```
+---
+
+## Steps to Deploy the Solution
+
+### 1. Pull the Docker Image
+
+The pre-built Docker image for AI Core is hosted on Docker Hub. To download the image, run:
+
+```bash
+docker pull viacode/aicore:latest
+```
+
+---
+
+### 2. Create Environment Configuration (Optional)
+
+Some configurations may require environment variables. Create a `.env` file in your project directory to define these variables:
+
+```env
+APP_ENV=production
+APP_PORT=8080
+DB_HOST=your-database-host
+DB_USER=your-database-user
+DB_PASSWORD=your-database-password
+```
+
+Ensure you replace the placeholders with actual values.
+
+---
+
+### 3. Run the Docker Container
+
+Start the container using the following command:
+
+```bash
+docker run -d \
+  --name aicore \
+  -p [host-port]:[container-port] \
+  --env-file .env \
+  viacode/aicore:[tag]
+```
+
+- Replace `[host-port]` with the port on your host machine (e.g., `8080`).
+- Replace `[container-port]` with the port the application listens to inside the container (e.g., `8080`).
+- Replace [tag] with the specific version tag (e.g., latest, v1.0.0). If unsure, use `latest`.
+
+---
+
+### 4. Verify the Deployment
+
+To ensure the container is running, execute:
+
+```bash
+docker ps
+```
+
+You should see your container listed. Verify the logs to ensure everything is working correctly:
+
+```bash
+docker logs aicore
+```
+
+Access the application in your browser at `http://localhost:8080`.
+
+---
+
+### 5. Manage the Docker Container
+
+Here are some useful commands to manage the container:
+
+- **Stop the container**:
+  ```bash
+  docker stop [container-name]
+  ```
+
+- **Restart the container**:
+  ```bash
+  docker restart [container-name]
+  ```
+
+- **Remove the container**:
+  ```bash
+  docker rm [container-name]
+  ```
+
+- **Remove the Docker image** (if needed):
+  ```bash
+  docker rmi [your-dockerhub-username]/[your-solution-name]:[tag]
+  ```
+
+---
+
+## Additional Notes
+
+1. **Customizing the Deployment**:
+   - If your application requires persistent storage (e.g., for databases), use Docker volumes. Example:
+     ```bash
+     docker run -d \
+       --name aicore \
+       -p 8080:8080 \
+       -v /path/to/data:/data \
+       --env-file .env \
+       viacode/aicore:latest
+     ```
+
+2. **Scaling with Docker Compose**:
+   - For more complex deployments involving multiple containers (e.g., frontend, backend, and database), consider using Docker Compose. Create a `docker-compose.yml` file and include the relevant services.
+
+3. **Troubleshooting**:
+   - If you encounter issues, check the container logs:
+     ```bash
+     docker logs aicore
+     ```
+   - Make sure all dependencies (e.g., database, external APIs) are accessible.
+
+---
+
+Happy deploying!
+
 
 ## Usage examples
 // todo
