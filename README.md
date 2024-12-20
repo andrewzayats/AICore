@@ -59,7 +59,7 @@ AI Core offers a Chat Area for data handling and models testing where users can:
 
 # Deployment
 
-This guide explains how to deploy VIAcode AI Core using the pre-built Docker images. Follow these steps to get the solution up and running efficiently.
+This guide explains how to deploy AI Core using the pre-built Docker images. Follow these steps to get the solution up and running efficiently.
 
 ---
 
@@ -68,26 +68,33 @@ This guide explains how to deploy VIAcode AI Core using the pre-built Docker ima
 Before deploying, ensure you have the following installed and configured on your system:
 
 1. **Docker**:
-   - Download and install Docker from [Docker's official website](https://hub.docker.com/r/viacode/ai-core/).
+   - Download and install Docker from [Docker's official website](https://www.docker.com/).
    - Verify the installation by running:
      ```bash
      docker --version
      ```
 2. **Docker Hub Account** (Optional):
-   - If the Docker image is private, log in to Docker Hub using your credentials:
+   - If the Docker images are private, log in to Docker Hub using your credentials:
      ```bash
      docker login
      ```
+
 ---
 
 ## Steps to Deploy the Solution
 
-### 1. Pull the Docker Image
+### 1. Pull the Docker Images
 
-The pre-built Docker image for AI Core is hosted on Docker Hub. To download the image, run:
+The pre-built Docker images for AI Core are hosted on Docker Hub. To download the images, run:
 
+#### Ingestion Service Image
 ```bash
-docker pull viacode/aicore:latest
+docker pull viacode/ai-core-file-ingestion:latest
+```
+
+#### API Service Image
+```bash
+docker pull viacode/ai-core:latest
 ```
 
 ---
@@ -102,101 +109,94 @@ APP_PORT=8080
 DB_HOST=your-database-host
 DB_USER=your-database-user
 DB_PASSWORD=your-database-password
+INGESTION_PORT=5000
+API_PORT=8081
 ```
 
 Ensure you replace the placeholders with actual values.
 
 ---
 
-### 3. Run the Docker Container
+### 3. Run the Docker Containers
 
-Start the container using the following command:
+#### 3.1 Start the Ingestion Service Container
+
+Start the ingestion service container using the following command:
 
 ```bash
 docker run -d \
-  --name aicore \
-  -p [host-port]:[container-port] \
+  --name ai-core-file-ingestion \
+  -p 8080:8080 \
   --env-file .env \
-  viacode/aicore:[tag]
+  viacode/ai-core-file-ingestion:latest
 ```
 
-- Replace `[host-port]` with the port on your host machine (e.g., `8080`).
-- Replace `[container-port]` with the port the application listens to inside the container (e.g., `8080`).
-- Replace [tag] with the specific version tag (e.g., latest, v1.0.0). If unsure, use `latest`.
+#### 3.2 Start the API Service Container
+
+Start the API service container using the following command:
+
+```bash
+docker run -d \
+  --name ai-core \
+  -p 8081:8081 \
+  --env-file .env \
+  viacode/ai-core:latest
+```
 
 ---
 
 ### 4. Verify the Deployment
 
-To ensure the container is running, execute:
+To ensure the containers are running, execute:
 
 ```bash
 docker ps
 ```
 
-You should see your container listed. Verify the logs to ensure everything is working correctly:
+You should see both containers listed. Verify the logs to ensure everything is working correctly:
 
+#### Ingestion Service Logs
 ```bash
-docker logs aicore
+docker logs ai-core-file-ingestion
 ```
 
-Access the application in your browser at `http://localhost:8080`.
+#### API Service Logs
+```bash
+docker logs ai-core
+```
+
+Access the services in your browser:
+
+- Ingestion Service: `http://localhost:8080`
+- API Service: `http://localhost:8081`
 
 ---
 
-### 5. Manage the Docker Container
+### 5. Manage the Docker Containers
 
-Here are some useful commands to manage the container:
+Here are some useful commands to manage the containers:
 
-- **Stop the container**:
+- **Stop the containers**:
   ```bash
-  docker stop [container-name]
+  docker stop ai-core-file-ingestion ai-core
   ```
 
-- **Restart the container**:
+- **Restart the containers**:
   ```bash
-  docker restart [container-name]
+  docker restart ai-core-file-ingestion ai-core
   ```
 
-- **Remove the container**:
+- **Remove the containers**:
   ```bash
-  docker rm [container-name]
+  docker rm ai-core-file-ingestion ai-core
   ```
 
-- **Remove the Docker image** (if needed):
+- **Remove the Docker images** (if needed):
   ```bash
-  docker rmi [your-dockerhub-username]/[your-solution-name]:[tag]
+  docker rmi viacode/ai-core-file-ingestion:latest viacode/ai-core:latest
   ```
-
----
-
-## Additional Notes
-
-1. **Customizing the Deployment**:
-   - If your application requires persistent storage (e.g., for databases), use Docker volumes. Example:
-     ```bash
-     docker run -d \
-       --name aicore \
-       -p 8080:8080 \
-       -v /path/to/data:/data \
-       --env-file .env \
-       viacode/aicore:latest
-     ```
-
-2. **Scaling with Docker Compose**:
-   - For more complex deployments involving multiple containers (e.g., frontend, backend, and database), consider using Docker Compose. Create a `docker-compose.yml` file and include the relevant services.
-
-3. **Troubleshooting**:
-   - If you encounter issues, check the container logs:
-     ```bash
-     docker logs aicore
-     ```
-   - Make sure all dependencies (e.g., database, external APIs) are accessible.
 
 ---
 
 Happy deploying!
 
-
-## Usage examples
-// todo
