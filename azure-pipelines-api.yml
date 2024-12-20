@@ -15,7 +15,7 @@ resources:
 - repo: self
 
 variables:
-  tag: '$(Build.BuildId)'
+  tag: 'latest'
 
 stages:
 - stage: Build
@@ -33,3 +33,5 @@ stages:
         repository: 'viacode/ai-core'
         command: 'buildAndPush'
         Dockerfile: 'Dockerfile'
+        tags: |
+          $(tag)
