@@ -21,7 +21,7 @@ WORKDIR /app
 
 RUN \
     useradd --create-home --user-group $USER --shell /bin/bash && \
-    # Ubuntu
+    # Ubuntu Latest
     # adduser -D -h /app -s /bin/sh $USER && \
     chown -R $USER:$USER /app
 
