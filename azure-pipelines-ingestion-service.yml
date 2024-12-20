@@ -6,11 +6,12 @@ trigger:
   branches:
     include:
       - main
-    paths:
-      include:
-        - Ingestion/**
-      exclude:
-        - AiCoreApi/**
+
+  paths:
+    include:
+      - Ingestion/**
+    exclude:
+      - AiCoreApi/**
 
 resources:
 - repo: self

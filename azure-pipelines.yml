@@ -6,9 +6,10 @@ trigger:
   branches:
     include:
       - main
-    paths:
-      include:
-        - AiCoreApi/**        
+
+  paths:
+    include:
+      - AiCoreApi/**        
 
 resources:
 - repo: self
