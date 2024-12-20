@@ -68,32 +68,47 @@ Agents serve different purposes and can handle tasks that vary from language pro
     - *Purpose*: Enables users to perform vector-based searches within their AI workflows.
 
 10. **Whisper Agent**
-    - *Purpose*: Enables users to perform vector-based searches within their AI workflows.
+    - *Purpose*: Enables the transcription of audio files into text, leveraging Azure's Whisper service.
 
+11. **Image To Text Agent**
+    - *Purpose*: Designed to convert images into text using Optical Character Recognition (OCR) technology and process the recognized text through large language models (LLMs).
 
+12. **Content Safety Agent**
+    - *Purpose*: Designed to ensure that content adheres to safety standards by analyzing text for hate, self-harm, sexual content, violence, protected materials, and jail break attacks.
 
-1. **LLM (Large Language Model) Agent**
-   - *Purpose*: Processes prompts and queries with AI models.
-   
-2. **Data Storage Agents**
-   - *Purpose*: Connects to data storage for reading and writing data.
+13. **Background Worker Agent**
+    - *Purpose*: Enables the asynchronous execution of Composite Agents, providing a scalable and resilient solution for managing long-running or resource-intensive tasks.
 
-3. **API Agent**
-   - *Purpose*: Manages calls to external APIs, including RESTful APIs.
+14. **OCR Agent**
+    - *Purpose*: Designed to process images and extract text data using Optical Character Recognition (OCR) technology.
 
-4. **Bing Agent**
-   - *Purpose*: Accesses Bing search and related services.
+15. **RAG Prompt Agent**
+    - *Purpose*: Designed to enhance the capabilities of Large Language Models (LLMs) by retrieving relevant information from a vector database before generating responses.
 
-5. **Retrieval Augmented Generation (RAG) Agent**
-   - *Purpose*: Enhances LLM capabilities by retrieving relevant information before responding.
+16. **Messages History Agent**
+    - *Purpose*: This agent allows users to access a specified number of recent messages, enabling them to maintain context in conversations and streamline interactions with large language models (LLMs).
 
-6. **Image and Audio Agents**
-   - *Image-to-Text*: Converts images into text using OCR.
+17. **Bing Agent**
+    - *Purpose*: Accesses Bing search and related services.
 
-7. **Code Execution Agents (C# / Python)**
+18. **Code Execution Agents (C# / Python)**
    - *Purpose*: Executes custom code, either in C# or Python, to handle specific logic.
 
-_Not a complete list._
+19. **Composite Agent**
+    - *Purpose*: Designed for creating complex, multi-step AI workflows.
+
+20. **Contains Agent**
+    - *Purpose*: Designed to identify specific data patterns within a given text using regular expressions (regex).
+
+21. **JSON Transform Agent**
+    - *Purpose*: Enables users to transform JSON data efficiently and dynamically as part of a larger workflow.
+
+22. **API Call Agent**
+    - *Purpose*: Allows users to make HTTP requests to external APIs. This agent type is versatile, supporting RESTful requests, CRUD operations, custom headers, authentication, and various response handling methods.
+
+23. **Prompt Agent**
+    - *Purpose*: Designed to execute tasks centered around language generation and interaction with Large Language Models (LLMs) via prompt-based inputs.
+
 
 ---
 
