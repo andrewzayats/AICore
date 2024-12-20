@@ -24,6 +24,8 @@ AI Core includes agents, modular components that enhance your AI workflows by au
   
 Developers can create custom agents or use predefined ones available in the platform to tailor solutions to specific needs. This modular design ensures flexibility and reduces development time for complex AI-driven applications.
 
+**[Full Agents Guide](https://github.com/VIAcode/AICore/blob/main/docs/Agents/Index.md)**
+
 ## 🪄 Available LLMs
 Large Language Models (LLMs) are advanced AI models trained on vast amounts of text data to understand and generate human-like language. They can perform a variety of tasks, including answering questions, summarizing documents, writing code, and engaging in conversational interactions. LLMs are essential for building intelligent, language-based applications such as chatbots, virtual assistants, and content generation tools.
 
