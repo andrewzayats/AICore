@@ -28,7 +28,6 @@ namespace AiCoreApi.SemanticKernel
         private readonly IApiCallAgent _apiCallAgent;
         private readonly IJsonTransformAgent _jsonTransformAgent;
         private readonly IContainsAgent _containsAgent;
-        private readonly IPythonCodeAgent _pythonCodeAgent;
         private readonly IBingSearchAgent _bingSearchAgent;
         private readonly IHistoryAgent _historyAgent;
         private readonly IRagPromptAgent _ragPromptAgent;
@@ -54,7 +53,6 @@ namespace AiCoreApi.SemanticKernel
             IApiCallAgent apiCallAgent,
             IJsonTransformAgent jsonTransformAgent,
             IContainsAgent containsAgent,
-            IPythonCodeAgent pythonCodeAgent,
             IBingSearchAgent bingSearchAgent,
             IHistoryAgent historyAgent,
             IRagPromptAgent ragPromptAgent,
@@ -80,7 +78,6 @@ namespace AiCoreApi.SemanticKernel
             _apiCallAgent = apiCallAgent;
             _jsonTransformAgent = jsonTransformAgent;
             _containsAgent = containsAgent;
-            _pythonCodeAgent = pythonCodeAgent;
             _bingSearchAgent = bingSearchAgent;
             _historyAgent = historyAgent;
             _ragPromptAgent = ragPromptAgent;
@@ -145,7 +142,6 @@ namespace AiCoreApi.SemanticKernel
         }
 
         private ICsharpCodeAgent? _csharpCodeAgent;
-
         public ICsharpCodeAgent CsharpCodeAgent
         {
             get
@@ -157,6 +153,21 @@ namespace AiCoreApi.SemanticKernel
             set
             {
                 _csharpCodeAgent = value;
+            }
+        }
+
+        private IPythonCodeAgent? _pythonCodeAgent;
+        public IPythonCodeAgent PythonCodeAgent
+        {
+            get
+            {
+                if (_pythonCodeAgent == null)
+                    _pythonCodeAgent = (IPythonCodeAgent)_serviceProvider.GetService(typeof(IPythonCodeAgent));
+                return _pythonCodeAgent;
+            }
+            set
+            {
+                _pythonCodeAgent = value;
             }
         }
 
@@ -184,7 +195,7 @@ namespace AiCoreApi.SemanticKernel
                 { AgentType.JsonTransform, _jsonTransformAgent },
                 { AgentType.Contains, _containsAgent },
                 { AgentType.Composite, CompositeAgent},
-                { AgentType.PythonCode, _pythonCodeAgent },
+                { AgentType.PythonCode, PythonCodeAgent },
                 { AgentType.CsharpCode, CsharpCodeAgent },
                 { AgentType.BingSearch, _bingSearchAgent },
                 { AgentType.History, _historyAgent },
@@ -228,5 +239,6 @@ namespace AiCoreApi.SemanticKernel
         string GetPlannerCacheKey(string plannerPrompt, Kernel kernel);
         ICompositeAgent CompositeAgent { get; set; }
         ICsharpCodeAgent CsharpCodeAgent { get; set; }
+        IPythonCodeAgent PythonCodeAgent { get; set; }
     }
 }

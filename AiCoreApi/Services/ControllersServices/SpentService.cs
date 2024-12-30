@@ -1,5 +1,6 @@
 ﻿using AiCoreApi.Common.Extensions;
 using AiCoreApi.Data.Processors;
+using AiCoreApi.Models.DbModels;
 using AiCoreApi.Models.ViewModels;
 using AutoMapper;
 using Microsoft.Extensions.Caching.Distributed;
@@ -35,7 +36,7 @@ namespace AiCoreApi.Services.ControllersServices
         {
             var logins = await _loginProcessor.List();
             var llmConnections = (await _connectionProcessor.List())
-                .Where(x => x.Type == Models.DbModels.ConnectionType.AzureOpenAiLlm)
+                .Where(x => x.Type.IsLlmConnection())
                 .ToDictionary(
                     key => key.Name, 
                     value => new

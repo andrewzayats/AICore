@@ -64,7 +64,8 @@ namespace AiCoreApi.SemanticKernel.Agents
             var temperature = agent.Content.ContainsKey(AgentContentParameters.Temperature) ? Convert.ToDouble(agent.Content[AgentContentParameters.Temperature].Value) : 0;
 
             var connections = await _connectionProcessor.List();
-            var llmConnection = GetConnection(_requestAccessor, _responseAccessor, connections, ConnectionType.AzureOpenAiLlm, DebugMessageSenderName, agent.LlmType);
+            var llmConnection = GetConnection(_requestAccessor, _responseAccessor, connections, 
+                new[] { ConnectionType.AzureOpenAiLlm, ConnectionType.OpenAiLlm, ConnectionType.CohereLlm }, DebugMessageSenderName, agent.LlmType);
 
             var kernel = _semanticKernelProvider.GetKernel(llmConnection);
             var chat = kernel.GetRequiredService<IChatCompletionService>();
@@ -91,7 +92,8 @@ namespace AiCoreApi.SemanticKernel.Agents
         public async Task<string> Prompt(string prompt, double temperature = 0, string connectionName = "")
         {
             var connections = await _connectionProcessor.List();
-            var llmConnection = GetConnection(_requestAccessor, _responseAccessor, connections, ConnectionType.AzureOpenAiLlm, DebugMessageSenderName, connectionName: connectionName);
+            var llmConnection = GetConnection(_requestAccessor, _responseAccessor, connections, 
+                new[] { ConnectionType.AzureOpenAiLlm, ConnectionType.OpenAiLlm, ConnectionType.CohereLlm }, DebugMessageSenderName, connectionName: connectionName);
             var kernel = _semanticKernelProvider.GetKernel(llmConnection);
             var chat = kernel.GetRequiredService<IChatCompletionService>();
             var history = new ChatHistory();

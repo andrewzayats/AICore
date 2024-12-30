@@ -50,7 +50,8 @@ namespace AiCoreApi.SemanticKernel.Agents
             parameters.ToList().ForEach(p => parameters[p.Key] = HttpUtility.HtmlDecode(p.Value));
 
             var connections = await _connectionProcessor.List();
-            var llmConnection = GetConnection(_requestAccessor, _responseAccessor, connections, ConnectionType.AzureOpenAiLlm, DebugMessageSenderName, agent.LlmType);
+            var llmConnection = GetConnection(_requestAccessor, _responseAccessor, connections, 
+                new [] { ConnectionType.AzureOpenAiLlm, ConnectionType.OpenAiLlm, ConnectionType.CohereLlm }, DebugMessageSenderName, agent.LlmType);
             var kernel = _semanticKernelProvider.GetKernel(llmConnection);
             var agents = agent.Content[AgentContentParameters.AgentsList].Value.JsonGet<Dictionary<string, bool>>();
             var plan = agent.Content.ContainsKey(AgentContentParameters.ExecutionPlan) 

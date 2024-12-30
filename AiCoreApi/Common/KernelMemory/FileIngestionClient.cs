@@ -185,11 +185,21 @@ namespace AiCoreApi.Common.KernelMemory
 
         public EmbeddingConnectionModel Populate(ConnectionModel embeddingConnection)
         {
-            Endpoint = embeddingConnection.Content["endpoint"];
-            ModelName = embeddingConnection.Content["modelName"];
-            ApiKey = embeddingConnection.Content["apiKey"];
-            MaxTokens = embeddingConnection.Content["maxTokens"];
-            IndexName = embeddingConnection.Content["indexName"];
+            if (embeddingConnection.Type == Models.DbModels.ConnectionType.AzureOpenAiEmbedding)
+            {
+                Endpoint = embeddingConnection.Content["endpoint"];
+                ModelName = embeddingConnection.Content["modelName"];
+                ApiKey = embeddingConnection.Content["apiKey"];
+                MaxTokens = embeddingConnection.Content["maxTokens"];
+                IndexName = embeddingConnection.Content["indexName"];
+            }
+            else if (embeddingConnection.Type == Models.DbModels.ConnectionType.OpenAiEmbedding)
+            {
+                ModelName = embeddingConnection.Content["modelName"];
+                ApiKey = embeddingConnection.Content["apiKey"];
+                MaxTokens = embeddingConnection.Content["maxTokens"];
+                IndexName = embeddingConnection.Content["indexName"];
+            }
             return this;
         }
     }

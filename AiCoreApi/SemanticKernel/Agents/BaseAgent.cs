@@ -119,12 +119,25 @@ namespace AiCoreApi.SemanticKernel.Agents
         }
 
         public abstract Task<string> DoCall(AgentModel agent, Dictionary<string, string> parameters);
-        
+
+        protected ConnectionModel GetConnection(
+            RequestAccessor requestAccessor,
+            ResponseAccessor responseAccessor,
+            List<ConnectionModel> connections,
+            ConnectionType connectionType,
+            string debugMessageSenderName,
+            int? connectionId = 0,
+            string? connectionName = "")
+        {
+            return GetConnection(requestAccessor, responseAccessor, connections, new[]{connectionType} , debugMessageSenderName, connectionId, connectionName);
+
+        }
+
         protected ConnectionModel GetConnection(
             RequestAccessor requestAccessor,
             ResponseAccessor responseAccessor,
             List<ConnectionModel> connections, 
-            ConnectionType connectionType, 
+            ConnectionType[] connectionTypes, 
             string debugMessageSenderName,
             int? connectionId = 0,
             string? connectionName = "")
@@ -132,14 +145,14 @@ namespace AiCoreApi.SemanticKernel.Agents
             var connectionSpecified = connectionId > 0 || !string.IsNullOrEmpty(connectionName);
             // Check connection specified for Agent
             var connection = connections.FirstOrDefault(conn =>
-                conn.Type == connectionType &&
+                connectionTypes.Contains(conn.Type) &&
                 (conn.ConnectionId == connectionId || conn.Name == connectionName));
             if (connection != null)
                 return connection;
 
             // Check connection specified in Request
-            connection = connections.FirstOrDefault(conn => 
-                conn.Type == connectionType && 
+            connection = connections.FirstOrDefault(conn =>
+                connectionTypes.Contains(conn.Type) && 
                 requestAccessor.DefaultConnectionNames.Contains(conn.Name));
             if (connection != null)
             {
@@ -149,15 +162,15 @@ namespace AiCoreApi.SemanticKernel.Agents
             }
 
             // Check just any connection
-            connection = connections.FirstOrDefault(conn => conn.Type == connectionType);
+            connection = connections.FirstOrDefault(conn => connectionTypes.Contains(conn.Type));
             if (connection != null)
             {
                 if (connectionSpecified)
                     responseAccessor.AddDebugMessage(debugMessageSenderName, "Warning", $"Specified connection not found. Using default: {connection.Name}");
                 return connection;
             }
-
-            responseAccessor.AddDebugMessage(debugMessageSenderName, "Error", $"No any {connectionType} connections found.");
+            var connectionTypesString = string.Join(", ", connectionTypes.Select(e => e.ToString()));
+            responseAccessor.AddDebugMessage(debugMessageSenderName, "Error", $"No any [{connectionTypesString}] connections found.");
             throw new Exception("No any LLM connections found.");
         }
     }

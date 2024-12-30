@@ -4,7 +4,6 @@ using AiCoreApi.Common.Extensions;
 using AiCoreApi.Data.Processors;
 using AiCoreApi.Models.DbModels;
 using Microsoft.KernelMemory.AI;
-using Microsoft.KernelMemory.AI.OpenAI;
 using Newtonsoft.Json;
 
 namespace AiCoreApi.Common
@@ -33,15 +32,17 @@ namespace AiCoreApi.Common
             var serviceProvider = httpContext?.RequestServices ?? _serviceProvider;
 
             var connectionProcessor = serviceProvider.GetService<IConnectionProcessor>();
-
-            var modelDeploymentName = GetModelDeploymentName(request.RequestUri.PathAndQuery);
+            var connectionType = GetConnectionType(request);
+            if (connectionType == null)
+                return await base.SendAsync(request, cancellationToken);
+            var modelDeploymentName = await GetModelDeploymentName(request, connectionType.Value, cancellationToken);
             // calculate tokens only for OpenAI models
             if (string.IsNullOrEmpty(modelDeploymentName))
                 return await base.SendAsync(request, cancellationToken);
             var connections = await connectionProcessor.List();
-            var connection = connections.FirstOrDefault(conn =>
-                conn.Type == ConnectionType.AzureOpenAiLlm &&
-                conn.Content["deploymentName"].ToLower() == modelDeploymentName);
+            var connection = connections.FirstOrDefault(conn => conn.Type == connectionType.Value &&
+                (conn.Type == ConnectionType.AzureOpenAiLlm && conn.Content["deploymentName"].ToLower() == modelDeploymentName) ||
+                (conn.Type == ConnectionType.OpenAiLlm && conn.Content["modelName"].ToLower() == modelDeploymentName));
             if (connection == null)
                 throw new TokensLimitException($"Model Deployment was not found in LLM connections: {modelDeploymentName}");
             var tokenLimitPerDay = Convert.ToInt64(connection.Content["tokenLimitPerDay"]);
@@ -84,15 +85,34 @@ namespace AiCoreApi.Common
 
             return response;
         }
+        
 
-
-
-        private string GetModelDeploymentName(string url)
+        private ConnectionType? GetConnectionType(HttpRequestMessage request)
         {
-            var pattern = @"deployments\/(.*?)\/chat\/completions";
-            var regex = new Regex(pattern);
-            var match = regex.Match(url);
-            return match.Success ? match.Groups[1].Value : string.Empty;
+            if (request.Method == HttpMethod.Post && request.RequestUri.AbsoluteUri == "https://api.openai.com/v1/chat/completions")
+                return ConnectionType.OpenAiLlm;
+            if (request.Method == HttpMethod.Post && request.RequestUri.AbsoluteUri.Contains("openai.azure.com/openai/deployments"))
+                return ConnectionType.AzureOpenAiLlm;
+            return null;
+        }
+
+        private async Task<string> GetModelDeploymentName(HttpRequestMessage request, ConnectionType connectionType, CancellationToken cancellationToken)
+        {
+            if (connectionType == ConnectionType.AzureOpenAiLlm)
+            {
+                var url = request.RequestUri.PathAndQuery;
+                var azureOpenAiPattern = @"deployments\/(.*?)\/chat\/completions";
+                var azureOpenAiRegex = new Regex(azureOpenAiPattern);
+                var azureOpenAiMatch = azureOpenAiRegex.Match(url);
+                if (azureOpenAiMatch.Success)
+                    return azureOpenAiMatch.Groups[1].Value;
+            }
+            if (connectionType == ConnectionType.OpenAiLlm)
+            {
+                var requestText = await request.Content?.ReadAsStringAsync(cancellationToken)!;
+                return requestText.JsonGet<string>("model") ?? string.Empty;
+            }
+            return string.Empty;
         }
 
         private async Task<int> GetRequestTokensCount(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -108,14 +128,32 @@ namespace AiCoreApi.Common
             var spentModel = new SpentModel();
             string responseTextContent;
             var responseText = await response.Content.ReadAsStringAsync(cancellationToken)!;
-            var responseUsage = responseText.JsonGet<ResponseUsage>();
-            // if response contains usage info
-            if (responseUsage?.Usage != null)
+            // one time call contains JSON output - parse it
+            if (responseText.StartsWith("{"))
             {
-                spentModel.TokensIncoming = responseUsage.Usage.CompletionTokens;
-                spentModel.TokensOutgoing = responseUsage.Usage.PromptTokens;
-                return spentModel;
+                var responseUsage = responseText.JsonGet<ResponseUsage>();
+                // if response contains usage info
+                if (responseUsage?.Usage != null)
+                {
+                    spentModel.TokensIncoming = responseUsage.Usage.CompletionTokens;
+                    spentModel.TokensOutgoing = responseUsage.Usage.PromptTokens;
+                    return spentModel;
+                }
+            } 
+            // streaming call contains multiple "data:" sections - pre-last one contains spent
+            else if (responseText.StartsWith("data:"))
+            {
+                var responseSections = responseText.Split("data:");
+                var responseUsage = responseSections[^2].JsonGet<ResponseUsage>();
+                // if response contains usage info
+                if (responseUsage?.Usage != null)
+                {
+                    spentModel.TokensIncoming = responseUsage.Usage.CompletionTokens;
+                    spentModel.TokensOutgoing = responseUsage.Usage.PromptTokens;
+                    return spentModel;
+                }
             }
+
             // if response contains choices array with content in it then parse it and count tokens
             if (responseText.StartsWith("{\"choices\""))
             {

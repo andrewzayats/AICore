@@ -67,7 +67,8 @@ namespace AiCoreApi.SemanticKernel.Agents
 
             var imageData = Convert.FromBase64String(base64Image.StripBase64());
             var connections = await _connectionProcessor.List();
-            var llmConnection = GetConnection(_requestAccessor, _responseAccessor, connections, ConnectionType.AzureOpenAiLlm, DebugMessageSenderName, agent.LlmType);
+            var llmConnection = GetConnection(_requestAccessor, _responseAccessor, connections, 
+                new[] { ConnectionType.AzureOpenAiLlm, ConnectionType.OpenAiLlm, ConnectionType.OpenAiLlm }, DebugMessageSenderName, agent.LlmType);
             var kernel = _semanticKernelProvider.GetKernel(llmConnection);
             var chat = kernel.GetRequiredService<IChatCompletionService>();
             var history = new ChatHistory();

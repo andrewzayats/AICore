@@ -1,12 +1,25 @@
+using System.Diagnostics;
 using Microsoft.SemanticKernel;
 using AiCoreApi.Models.DbModels;
 using System.Web;
 using AiCoreApi.Common;
+using Python.Runtime;
+using System.Text.RegularExpressions;
+using DocumentFormat.OpenXml.Office.Word;
 
 namespace AiCoreApi.SemanticKernel.Agents
 {
     public class PythonCodeAgent : BaseAgent, IPythonCodeAgent
     {
+        private static readonly object _lock = new object();
+        private static List<string> _executedCommands = new();
+        static PythonCodeAgent()
+        {
+            Runtime.PythonDLL = "/usr/lib/x86_64-linux-gnu/libpython3.11.so";
+            PythonEngine.Initialize();
+            PythonEngine.BeginAllowThreads();
+        }
+
         private const string DebugMessageSenderName = "PythonCodeAgent";
         public static class AgentPromptPlaceholders
         {
@@ -19,13 +32,17 @@ namespace AiCoreApi.SemanticKernel.Agents
         {
             public const string PythonCode = "pythonCode";
         }
+
+        private readonly IPlannerHelpers _plannerHelpers;
         private readonly RequestAccessor _requestAccessor;
         private readonly ResponseAccessor _responseAccessor;
 
         public PythonCodeAgent(
+            IPlannerHelpers plannerHelpers,
             RequestAccessor requestAccessor,
             ResponseAccessor responseAccessor)
         {
+            _plannerHelpers = plannerHelpers;
             _requestAccessor = requestAccessor;
             _responseAccessor = responseAccessor;
         }
@@ -45,14 +62,115 @@ namespace AiCoreApi.SemanticKernel.Agents
             });
             _responseAccessor.AddDebugMessage(DebugMessageSenderName, "Execute Python Code", pythonCode);
 
-            var eng = IronPython.Hosting.Python.CreateEngine();
-            var scope = eng.CreateScope();
-            scope.SetVariable("Parameters", parameters);
-            scope.SetVariable("RequestAccessor", _requestAccessor);
-            eng.Execute(pythonCode, scope);
-            dynamic result = scope.GetVariable("result");
+
+            var result = string.Empty;
+            try
+            {
+                using (Py.GIL())
+                {
+                    using (PyModule scope = Py.CreateScope())
+                    {
+                        pythonCode = RunCmd(pythonCode);
+                        var importPattern = @"^\s*(?:import|from)\s+([\w\.]+)";
+                        var matches = Regex.Matches(pythonCode, importPattern, RegexOptions.Multiline);
+                        var imports = new List<string>();
+                        foreach (Match match in matches)
+                        {
+                            if (match.Success)
+                            {
+                                var library = match.Groups[1].Value;
+                                imports.Add(library);
+                            }
+                        }
+                        dynamic builtIns = scope.Import("builtins");
+                        foreach (var lib in imports)
+                        {
+                            scope.Import(lib);
+                        }
+
+                        builtIns.ExecuteAgent = new Func<string, string[]?, string>(ExecuteAgent);
+                        PyObject requestAccessorPy = _requestAccessor.ToPython();
+                        PyObject responseAccessorPy = _responseAccessor.ToPython();
+                        PyObject parametersPy = parameters.ToPython();
+                        scope.Set("RequestAccessor", requestAccessorPy);
+                        scope.Set("ResponseAccessor", responseAccessorPy);
+                        scope.Set("Parameters", parametersPy);
+                        var pyModule = scope.Exec(pythonCode);
+                        result = pyModule.Eval($@"str(result)").ToString();
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                _responseAccessor.AddDebugMessage(DebugMessageSenderName, "Python Code Error", $"Exception: {e.Message}\r\n\r\nInner Exception: {e.InnerException?.Message}");
+                throw;
+            }
             _responseAccessor.AddDebugMessage(DebugMessageSenderName, "Python Code Result", result);
             return result;
+        }
+
+        private string RunCmd(string pythonCode)
+        {
+            lock (_lock)
+            {
+                var cmdPattern = @"^# cmd:\s*(.*)";
+                var commands = Regex.Matches(pythonCode, cmdPattern, RegexOptions.Multiline);
+                foreach (Match command in commands)
+                {
+                    var cmd = command.Groups[1].Value.Trim();
+                    if(_executedCommands.Contains(cmd))
+                        continue;
+                    _executedCommands.Add(cmd);
+                    _responseAccessor.AddDebugMessage(DebugMessageSenderName, "Python Code Command", cmd);
+                    if (cmd.StartsWith("pip"))
+                        cmd += " --break-system-packages --root-user-action=ignore";
+                    var process = new Process
+                    {
+                        StartInfo = new ProcessStartInfo
+                        {
+                            FileName = "/bin/bash",
+                            Arguments = $"-c \"{cmd}\"",
+                            RedirectStandardOutput = true,
+                            RedirectStandardError = true,
+                            UseShellExecute = false,
+                            CreateNoWindow = true
+                        }
+                    };
+                    process.Start();
+                    // Read asynchronously to avoid deadlocks
+                    var outputTask = process.StandardOutput.ReadToEndAsync();
+                    var errorTask = process.StandardError.ReadToEndAsync();
+                    process.WaitForExit();
+                    var cmdResult = outputTask.Result;
+                    var cmdError = errorTask.Result;
+
+                    if (!string.IsNullOrWhiteSpace(cmdError))
+                    {
+                        _responseAccessor.AddDebugMessage(DebugMessageSenderName, "Python Code Command Error", cmdError);
+                    }
+                    else
+                    {
+                        _responseAccessor.AddDebugMessage(DebugMessageSenderName, "Python Code Command Result", cmdResult);
+                    }
+                }
+                pythonCode = Regex.Replace(pythonCode, cmdPattern, string.Empty);
+                return pythonCode;
+            }
+        }
+
+        private string ExecuteAgent(string agentName, string[] parameters = null)
+        {
+            _plannerHelpers.PythonCodeAgent = this;
+            try
+            {
+                return _plannerHelpers.ExecuteAgent(agentName, parameters.ToList()).GetAwaiter().GetResult();
+            }
+            catch (Exception e)
+            {
+                _responseAccessor.AddDebugMessage(DebugMessageSenderName,
+                    "Python Code ExecuteAgent Error", $"Agent: {agentName}\r\n\r\n Exception: {e.Message}\r\n\r\nInner Exception: {e.InnerException?.Message}");
+                throw;
+            }
         }
     }
 

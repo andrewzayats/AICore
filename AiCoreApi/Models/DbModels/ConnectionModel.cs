@@ -34,5 +34,19 @@ namespace AiCoreApi.Models.DbModels
         AzureAiTranslator = 12,
         AzureAiSpeech = 13,
         AzureAiSearch = 14,
+        OpenAiLlm = 15,
+        OpenAiEmbedding = 16,
+        CohereLlm = 17,
+    }
+
+    public static class ConnectionTypeExtensions
+    {
+        public static bool IsLlmConnection(this ConnectionType connectionType) => 
+            connectionType == ConnectionType.AzureOpenAiLlm ||
+            connectionType == ConnectionType.OpenAiLlm ||
+            connectionType == ConnectionType.CohereLlm;
+        public static bool IsEmbeddingConnection(this ConnectionType connectionType) => 
+            connectionType == ConnectionType.AzureOpenAiEmbedding || 
+            connectionType == ConnectionType.OpenAiEmbedding;
     }
 }

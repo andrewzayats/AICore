@@ -24,14 +24,31 @@ namespace AiCoreApi.SemanticKernel
         public Kernel GetKernel(ConnectionModel connectionModel)
         {
             var httpClient = _httpClientFactory.CreateClient("RetryClient");
-            var kernel = Kernel.CreateBuilder()
-                .AddAzureOpenAIChatCompletion(
+            var kernelBuilder = Kernel.CreateBuilder();
+            if (connectionModel.Type == ConnectionType.AzureOpenAiLlm)
+            {
+                kernelBuilder = kernelBuilder.AddAzureOpenAIChatCompletion(
                     connectionModel.Content["deploymentName"],
                     connectionModel.Content["endpoint"],
                     connectionModel.Content["azureOpenAiKey"],
-                    httpClient: httpClient)
-                .Build();
-            return kernel;
+                    httpClient: httpClient);
+            }
+            else if (connectionModel.Type == ConnectionType.OpenAiLlm)
+            {
+                kernelBuilder = kernelBuilder.AddOpenAIChatCompletion(
+                    connectionModel.Content["modelName"],
+                    connectionModel.Content["apiKey"],
+                    httpClient: httpClient);
+            }
+            else if (connectionModel.Type == ConnectionType.CohereLlm)
+            {
+                kernelBuilder = kernelBuilder.AddCohereChatCompletion(
+                    connectionModel.Content["modelName"],
+                    connectionModel.Content["apiKey"],
+                    new List<string>(),
+                    httpClient: httpClient);
+            }
+            return kernelBuilder.Build();
         }
 
         public async Task<Kernel> GetKernel()
@@ -39,9 +56,9 @@ namespace AiCoreApi.SemanticKernel
             // Get the default LLM connection
             var connections = await _connectionProcessor.List();
             var llmConnection = connections.FirstOrDefault(conn =>
-                conn.Type == ConnectionType.AzureOpenAiLlm &&
+                conn.Type.IsLlmConnection() &&
                 _requestAccessor.DefaultConnectionNames.Contains(conn.Name)) 
-                    ?? connections.FirstOrDefault(conn => conn.Type == ConnectionType.AzureOpenAiLlm);
+                    ?? connections.FirstOrDefault(conn => conn.Type.IsLlmConnection());
             if (llmConnection == null)
                 throw new Exception("No any LLM connection found");
 

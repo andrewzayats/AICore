@@ -18,7 +18,7 @@ namespace AiCoreApi.Data.Processors
 
         public async Task<List<ConnectionModel?>> List()
         {
-            return await _db.Connections.AsNoTracking().ToListAsync();
+            return await _db.Connections.AsNoTracking().OrderBy(item => item.ConnectionId).ToListAsync();
         }
 
         public async Task<ConnectionModel> Set(ConnectionModel connectionModel)

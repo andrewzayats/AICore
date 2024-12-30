@@ -44,7 +44,7 @@ namespace AiCoreApi.Common
                 using var reader = new StreamReader(request.Body, leaveOpen: true);
                 var body = reader.ReadToEndAsync().Result;
                 request.Body.Position = 0;
-                MessageDialog = body.JsonGet<MessageDialogViewModel>();
+                MessageDialog = body.StartsWith("{") ? body.JsonGet<MessageDialogViewModel>() : null;
             }
         }
 

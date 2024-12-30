@@ -32,10 +32,10 @@ namespace AiCoreApi.Services.IngestionServices
             var connections = await GetConnections();
             if (connections.Count == 0)
                 throw new ApplicationException("No connections found");
-            var connection = connections.Find(x => x.Type == ConnectionType.AzureOpenAiEmbedding && x.ConnectionId.ToString() == embeddingConnection);
+            var connection = connections.Find(x => x.Type.IsEmbeddingConnection() && x.ConnectionId.ToString() == embeddingConnection);
             if (string.IsNullOrEmpty(embeddingConnection))
             {
-                connection = connections.First(x => x.Type == ConnectionType.AzureOpenAiEmbedding)!;
+                connection = connections.First(x => x.Type.IsEmbeddingConnection())!;
                 ingestion.Content[Constants.EmbeddingConnectionField] = connection.Name;
             }
             if (connection == null)

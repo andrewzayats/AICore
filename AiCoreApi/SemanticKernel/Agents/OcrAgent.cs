@@ -392,6 +392,11 @@ namespace AiCoreApi.SemanticKernel.Agents
 
         private List<ContentPointItem> GetTextMiddle(DocumentPage ocrPage)
         {
+            var wordsMiddle = ocrPage.Words.Select(word => new
+            {
+                word.Confidence,
+                Middle = GetMiddlePoint(PolygonToPointList(ocrPage, word.Polygon, (int)ocrPage.Angle))
+            }).ToList();
             var textMiddle = new List<ContentPointItem>();
             foreach (var line in ocrPage.Lines)
             {
@@ -400,6 +405,7 @@ namespace AiCoreApi.SemanticKernel.Agents
                 {
                     Content = line.Content,
                     Location = GetMiddlePoint(points),
+                    Confidence = wordsMiddle.Select(word => IsPointInsideQuadrilateral(word.Middle, points) ? word.Confidence : 1).Min(x => x)
                 });
             }
             textMiddle = textMiddle.OrderByDescending(item => item.Location.Y).ToList();
@@ -408,6 +414,11 @@ namespace AiCoreApi.SemanticKernel.Agents
 
         private List<ContentAreaItem> GetTextArea(DocumentPage ocrPage)
         {
+            var wordsMiddle = ocrPage.Words.Select(word => new
+            {
+                word.Confidence,
+                Middle = GetMiddlePoint(PolygonToPointList(ocrPage, word.Polygon, (int)ocrPage.Angle))
+            }).ToList();
             var textAreas = new List<ContentAreaItem>();
             foreach (var line in ocrPage.Lines)
             {
@@ -416,6 +427,7 @@ namespace AiCoreApi.SemanticKernel.Agents
                 {
                     Content = line.Content,
                     Location = points,
+                    Confidence = wordsMiddle.Select(word => IsPointInsideQuadrilateral(word.Middle, points) ? word.Confidence : 1).Min(x => x)
                 });
             }
             textAreas = textAreas.OrderByDescending(item => item.Location.Sum(l => l.Y)).ToList();
@@ -498,6 +510,27 @@ namespace AiCoreApi.SemanticKernel.Agents
                 }, angle, centerX, centerY));
             }
             return points;
+        }
+        private static bool IsPointInsideQuadrilateral(PointItem point, List<PointItem> polygon)
+        {
+            // Calculate the total area of the quadrilateral
+            var quadArea = CalculateTriangleArea(polygon[0], polygon[1], polygon[2]) + CalculateTriangleArea(polygon[0], polygon[2], polygon[3]);
+
+            // Calculate areas of triangles formed with the point
+            var area1 = CalculateTriangleArea(point, polygon[0], polygon[1]);
+            var area2 = CalculateTriangleArea(point, polygon[1], polygon[2]);
+            var area3 = CalculateTriangleArea(point, polygon[2], polygon[3]);
+            var area4 = CalculateTriangleArea(point, polygon[3], polygon[0]);
+
+            // Check if the sum of the areas equals the quadrilateral area
+            var sumOfAreas = area1 + area2 + area3 + area4;
+
+            return Math.Abs(sumOfAreas - quadArea) < 1e-9; // Consider floating-point precision
+        }
+
+        private static double CalculateTriangleArea(PointItem a, PointItem b, PointItem c)
+        {
+            return Math.Abs(a.X * (b.Y - c.Y) + b.X * (c.Y - a.Y) + c.X * (a.Y - b.Y)) / 2.0;
         }
 
         public class OcrResult

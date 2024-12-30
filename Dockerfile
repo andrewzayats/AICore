@@ -1,8 +1,12 @@
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
-# USER  app
+# USER app
 WORKDIR /app
 EXPOSE 8080
 EXPOSE 8081
+
+RUN apt-get update && \
+    apt-get install -y python3.11 python3-pip && \
+    rm -rf /var/lib/apt/lists/*
 
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release

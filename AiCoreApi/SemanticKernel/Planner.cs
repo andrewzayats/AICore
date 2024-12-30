@@ -24,6 +24,7 @@ namespace AiCoreApi.SemanticKernel
         private readonly IPlannerHelpers _plannerHelpers;
         private readonly ICompositeAgent _compositeAgent;
         private readonly ICsharpCodeAgent _csharpCodeAgent;
+        private readonly IPythonCodeAgent _pythonCodeAgent; 
 
         public Planner(
             ISemanticKernelProvider semanticKernelProvider,
@@ -36,7 +37,8 @@ namespace AiCoreApi.SemanticKernel
             ILogger<Planner> logger,
             IPlannerHelpers plannerHelpers,
             ICompositeAgent compositeAgent,
-            ICsharpCodeAgent csharpCodeAgent)
+            ICsharpCodeAgent csharpCodeAgent,
+            IPythonCodeAgent pythonCodeAgent)
         {
             _semanticKernelProvider = semanticKernelProvider;
             _requestAccessor = requestAccessor;
@@ -49,6 +51,7 @@ namespace AiCoreApi.SemanticKernel
             _plannerHelpers = plannerHelpers;
             _compositeAgent = compositeAgent;
             _csharpCodeAgent = csharpCodeAgent;
+            _pythonCodeAgent = pythonCodeAgent;
         }
         
         public async Task<MessageDialogViewModel.Message> GetChatResponse()
@@ -108,6 +111,7 @@ namespace AiCoreApi.SemanticKernel
             var agentsList = await _plannerHelpers.GetAgentsList();
             _plannerHelpers.CompositeAgent = _compositeAgent;
             _plannerHelpers.CsharpCodeAgent = _csharpCodeAgent;
+            _plannerHelpers.PythonCodeAgent = _pythonCodeAgent;
             var allUserTags = await _loginProcessor.GetTagsByLogin(_requestAccessor.Login, _requestAccessor.LoginType);
             foreach (var agent in agentsList)
             {

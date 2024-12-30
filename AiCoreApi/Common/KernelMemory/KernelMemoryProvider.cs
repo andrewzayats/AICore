@@ -27,35 +27,30 @@ namespace AiCoreApi.Common.KernelMemory
 
             var qdConfig = new QdrantConfig { Endpoint = _config.QdrantUrl };
             var httpClient = _httpClientFactory.CreateClient("RetryClient");
-            var azureOpenAiEmbeddingConfig = new AzureOpenAIConfig
-            {
-                Auth = AzureOpenAIConfig.AuthTypes.APIKey,
-                APIKey = embeddingConnection.Content["apiKey"],
-                Endpoint = embeddingConnection.Content["endpoint"],
-                Deployment = embeddingConnection.Content["modelName"],
-                MaxTokenTotal = Convert.ToInt32(embeddingConnection.Content["maxTokens"])
-            };
+
             var searchClientConfig = new SearchClientConfig
             {
                 EmptyAnswer = _config.NoInformationFoundText,
                 AnswerTokens = Convert.ToInt32(llmConnection.Content["maxAnswersTokens"]),
                 Temperature = Convert.ToDouble(llmConnection.Content["temperature"]),
             };
-            var azureOpenAiTextConfig = new AzureOpenAIConfig
-            {
-                Auth = AzureOpenAIConfig.AuthTypes.APIKey,
-                APIKey = llmConnection.Content["azureOpenAiKey"],
-                Endpoint = llmConnection.Content["endpoint"],
-                Deployment = llmConnection.Content["deploymentName"],
-                MaxTokenTotal = Convert.ToInt32(llmConnection.Content["maxRequestTokens"]),
-                MaxRetries = 5,
-                APIType = AzureOpenAIConfig.APITypes.ChatCompletion
-            };
+
             var memoryBuilder = new KernelMemoryBuilder()
                 .WithCustomPromptProvider(new MarkdownPromptProvider(serviceProvider))
-                .WithSearchClientConfig(searchClientConfig)
-                .WithAzureOpenAITextGeneration(azureOpenAiTextConfig, httpClient: httpClient)
-                .WithAzureOpenAITextEmbeddingGeneration(azureOpenAiEmbeddingConfig);
+                .WithSearchClientConfig(searchClientConfig);
+
+            // Add AzureOpenAI or OpenAI text generation
+            if (llmConnection.Type == ConnectionType.AzureOpenAiLlm)
+                memoryBuilder = memoryBuilder.WithAzureOpenAITextGeneration(GetAzureOpenAIConfig(llmConnection), httpClient: httpClient);
+            if (llmConnection.Type == ConnectionType.OpenAiLlm)
+                memoryBuilder = memoryBuilder.WithOpenAITextGeneration(GetOpenAIConfig(llmConnection), httpClient: httpClient);
+
+            // Add AzureOpenAI or OpenAI embedding generation
+            if (embeddingConnection.Type == ConnectionType.AzureOpenAiEmbedding)
+                memoryBuilder = memoryBuilder.WithAzureOpenAITextEmbeddingGeneration(GetAzureOpenAiEmbeddingConfig(embeddingConnection), httpClient: httpClient);
+            if (embeddingConnection.Type == ConnectionType.OpenAiEmbedding)
+                memoryBuilder = memoryBuilder.WithOpenAITextEmbeddingGeneration(GetOpenAiEmbeddingConfig(embeddingConnection), httpClient: httpClient);
+
             if (vectorDbConnection != null)
             {
                 var aiSearchConfig = new AzureAISearchConfig
@@ -74,6 +69,40 @@ namespace AiCoreApi.Common.KernelMemory
             return memoryBuilder.Build<MemoryServerless>();
         }
 
+        private AzureOpenAIConfig GetAzureOpenAIConfig(ConnectionModel llmConnection) => new()
+        {
+            Auth = AzureOpenAIConfig.AuthTypes.APIKey,
+            APIKey = llmConnection.Content["azureOpenAiKey"],
+            Endpoint = llmConnection.Content["endpoint"],
+            Deployment = llmConnection.Content["deploymentName"],
+            MaxTokenTotal = Convert.ToInt32(llmConnection.Content["maxRequestTokens"]),
+            MaxRetries = 5,
+            APIType = AzureOpenAIConfig.APITypes.ChatCompletion
+        };
+
+        private OpenAIConfig GetOpenAIConfig(ConnectionModel llmConnection) => new()
+        {
+            APIKey = llmConnection.Content["apiKey"],
+            TextModel = llmConnection.Content["modelName"],
+            TextModelMaxTokenTotal = Convert.ToInt32(llmConnection.Content["maxRequestTokens"]),
+            MaxRetries = 5,
+        };
+
+        private AzureOpenAIConfig GetAzureOpenAiEmbeddingConfig(ConnectionModel embeddingConnection) => new()
+        {
+            Auth = AzureOpenAIConfig.AuthTypes.APIKey,
+            APIKey = embeddingConnection.Content["apiKey"],
+            Endpoint = embeddingConnection.Content["endpoint"],
+            Deployment = embeddingConnection.Content["modelName"],
+            MaxTokenTotal = Convert.ToInt32(embeddingConnection.Content["maxTokens"])
+        };
+        private OpenAIConfig GetOpenAiEmbeddingConfig(ConnectionModel embeddingConnection) => new()
+        {
+            APIKey = embeddingConnection.Content["apiKey"],
+            EmbeddingModel = embeddingConnection.Content["modelName"],
+            EmbeddingModelMaxTokenTotal = Convert.ToInt32(embeddingConnection.Content["maxTokens"]),
+            MaxRetries = 10,
+        };
     }
 
     public interface IKernelMemoryProvider

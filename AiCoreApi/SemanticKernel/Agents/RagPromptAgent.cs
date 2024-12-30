@@ -93,8 +93,10 @@ namespace AiCoreApi.SemanticKernel.Agents
             var vectorDbConnection = (string.IsNullOrEmpty(vectorDbConnectionName) || vectorDbConnectionName == "Internal Qdrant")
                 ? null
                 : GetConnection(_requestAccessor, _responseAccessor, connections, ConnectionType.AzureAiSearch, DebugMessageSenderName, connectionName: vectorDbConnectionName);
-            var embeddingConnection = GetConnection(_requestAccessor, _responseAccessor, connections, ConnectionType.AzureOpenAiEmbedding, DebugMessageSenderName, connectionName: embeddingConnectionName);
-            var llmConnection = GetConnection(_requestAccessor, _responseAccessor, connections, ConnectionType.AzureOpenAiLlm, DebugMessageSenderName, agent.LlmType);
+            var embeddingConnection = GetConnection(_requestAccessor, _responseAccessor, connections, 
+                new[] { ConnectionType.AzureOpenAiEmbedding, ConnectionType.OpenAiEmbedding }, DebugMessageSenderName, connectionName: embeddingConnectionName);
+            var llmConnection = GetConnection(_requestAccessor, _responseAccessor, connections, 
+                new[] { ConnectionType.AzureOpenAiLlm, ConnectionType.OpenAiLlm, ConnectionType.CohereLlm }, DebugMessageSenderName, agent.LlmType);
             var vectorIndexName = embeddingConnection.Content.ContainsKey("indexName")
                 ? embeddingConnection.Content["indexName"]
                 : "default";
@@ -105,6 +107,7 @@ namespace AiCoreApi.SemanticKernel.Agents
                 _responseAccessor.AddDebugMessage(DebugMessageSenderName, "DoCall Response", $"{_config.NoInformationFoundText} (filters)");
                 return _config.NoInformationFoundText;
             }
+
             var answer = await kernelMemory.AskAsync(question, minRelevance: minRelevance,
                 index: vectorIndexName,
                 filters: _featureFlags.IsEnabled(FeatureFlags.Names.Tagging) ? filters : null);
