@@ -52,6 +52,32 @@ namespace AiCoreApi.Controllers
             return Ok(result);
         }
 
+        [HttpPost("agent/{agentName}")]
+        [CombinedAuthorize]
+        [Consumes("application/json")]
+        [Produces("application/json")]
+        [SwaggerResponse(StatusCodes.Status200OK, Type = typeof(MessageDialogViewModel))]
+        [SwaggerOperation(Summary = "Agents call endpoint. Entrypoint for direct calling Agents. Wrapper for chat endpoint.")]
+        [DisableRequestSizeLimit]
+        public async Task<IActionResult> Agent(
+            string agentName,
+            [FromBody]
+            [SwaggerRequestBody("Agents Parameters values")]
+            Dictionary<string, string>? parameters = null,
+            [FromQuery(Name = "tags")]
+            [SwaggerParameter("Tag Ids, comma separated. To get Tags, available for the user, use /api/v1/tags/my. If no tags specified and TAGGING feature is enabled, user get nothing.", Required = false)] 
+            string tags = "0",
+            [FromQuery(Name = "connection_name")]
+            [SwaggerParameter("Connection Name from 'Connections' tab. Used as Default LLM for all agents. Optional. In not specified, then the first one will be used.", Required = false)]
+            string connectionName = "",
+            [FromQuery(Name = "use_debug")]
+            [SwaggerParameter("Allow Administrator to get debug information while executing Plan.", Required = false)]
+            bool useDebug = false)
+        {
+            var result = await _copilotService.Agent(agentName, parameters);
+            return Ok(result);
+        }
+
         [HttpPost("prompt")]
         [CombinedAuthorize]
         [Consumes("application/json")]

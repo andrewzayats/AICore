@@ -70,6 +70,31 @@ namespace AiCoreApi.Services.ControllersServices
             return messageDialog;
         }
 
+        public async Task<MessageDialogViewModel> Agent(string agentName, Dictionary<string, string>? parameters = null)
+        {
+            _requestAccessor.MessageDialog = new MessageDialogViewModel
+            {
+                Messages = new List<MessageDialogViewModel.Message>
+                {
+                    new()
+                    {
+                        Sender = "User",
+                        Text = string.Empty,
+                        Options = new MessageDialogViewModel.CallOptions[]
+                        {
+                            new()
+                            {
+                                Type = MessageDialogViewModel.CallOptions.CallOptionsType.AgentCall,
+                                Name = agentName,
+                                Parameters = parameters ?? new Dictionary<string, string>()
+                            }
+                        }
+                    }
+                }
+            };
+            return await Chat();
+        }
+
         public async Task<List<SearchItemModel>?> Search()
         {
             var vectorSearchResult = await _vectorSearchAgent.Search(_requestAccessor.Query, -1, 0, "", "", "", null);
@@ -116,6 +141,7 @@ namespace AiCoreApi.Services.ControllersServices
     {
         Task<string> Prompt(string prompt, double temperature, string connectionName);
         Task<MessageDialogViewModel> Chat();
+        Task<MessageDialogViewModel> Agent(string agentName, Dictionary<string, string>? parameters = null);
         Task<List<SearchItemModel>?> Search();
         Task<string> Transcribe(IFormFile file);
         Task<string> Proxy(ProxyRequestModel proxyRequest);
