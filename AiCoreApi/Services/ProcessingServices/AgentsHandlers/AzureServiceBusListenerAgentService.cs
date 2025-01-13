@@ -1,0 +1,129 @@
+using AiCoreApi.Common.Extensions;
+using AiCoreApi.Data.Processors;
+using AiCoreApi.Models.DbModels;
+using Azure.Messaging.ServiceBus;
+
+namespace AiCoreApi.Services.ProcessingServices.AgentsHandlers
+{
+    public class AzureServiceBusListenerAgentService : AgentServiceBase, IAzureServiceBusListenerAgentService
+    {
+        private static readonly Dictionary<string, ServiceBusProcessor> ServiceBusProcessors = new();
+        private static readonly Dictionary<string, ServiceBusClient> ServiceBusClients = new();
+        private readonly IAgentsProcessor _agentsProcessor; 
+        private readonly IConnectionProcessor _connectionProcessor;
+
+        public AzureServiceBusListenerAgentService(
+            ILoginProcessor loginProcessor,
+            IAgentsProcessor agentsProcessor,
+            IServiceProvider serviceProvider,
+            IConnectionProcessor connectionProcessor)
+            : base(loginProcessor, serviceProvider)
+        {
+            _agentsProcessor = agentsProcessor;
+            _connectionProcessor = connectionProcessor;
+        }
+
+        public async Task ProcessTask()
+        {
+            var agents = await _agentsProcessor.List();
+            var schedulerAgents = agents.Where(agent => agent.Type == AgentType.AzureServiceBusListener).ToList();
+            var processedAgents = new List<string>();
+            foreach (var agent in schedulerAgents)
+            {
+                if(!agent.IsEnabled)
+                    continue;
+                if (!agent.Content.ContainsKey("lastResult"))
+                    agent.Content.Add("lastResult", new ConfigurableSetting { Value = "", Code = "lastResult", Name = "Last Result" });
+                if (!agent.Content.ContainsKey("lastRun"))
+                    agent.Content.Add("lastRun", new ConfigurableSetting { Value = "Never", Code = "lastRun", Name = "Last Run" });
+
+                var connectionName = agent.Content["connectionName"].Value;
+                var queueOrTopicName = agent.Content["queueOrTopicName"].Value;
+                var agentToCall = agent.Content["agentToCall"].Value;
+                var runAs = Convert.ToInt32(agent.Content["runAs"].Value);
+
+                var key = $"{connectionName}|{queueOrTopicName}|{agentToCall}|{runAs}".GetHash();
+                processedAgents.Add(key);
+
+                if (ServiceBusProcessors.ContainsKey(key))
+                    continue;
+
+                var connections = await _connectionProcessor.List();
+                var connection = connections.FirstOrDefault(conn => conn.Type == ConnectionType.AzureServiceBus && conn.Name == connectionName);
+                if (connection == null)
+                {
+                    agent.Content["lastResult"].Value = $"Connection not found: {connectionName}";
+                    agent.Content["lastRun"].Value = DateTime.UtcNow.ToString("o");
+                    await _agentsProcessor.Update(agent);
+                    continue;
+                }
+
+                var serviceBusConnectionString = connection.Content["serviceBusConnectionString"];
+
+                var client = ServiceBusClients.ContainsKey(serviceBusConnectionString)
+                    ? ServiceBusClients[serviceBusConnectionString]
+                    : new ServiceBusClient(serviceBusConnectionString);
+                ServiceBusClients[serviceBusConnectionString] = client;
+
+                var processor = client.CreateProcessor(queueOrTopicName);
+                ServiceBusProcessors.Add(key, processor);
+                processor.ProcessMessageAsync += async args => await ProcessMessageAsync(args, runAs, agent.Name, agentToCall);
+                processor.ProcessErrorAsync += async args => await ProcessErrorAsync(args, agent.Name);
+                await processor.StartProcessingAsync();
+            }
+            // Remove old processors
+            var currentServiceBusProcessors = ServiceBusProcessors.ToList();
+            foreach (var processor in currentServiceBusProcessors)
+            {
+                if (!processedAgents.Contains(processor.Key))
+                {
+                    await processor.Value.StopProcessingAsync();
+                }
+            }
+        }
+
+        private async Task ProcessErrorAsync(ProcessErrorEventArgs args, string currentAgentName)
+        {
+            using var scope = ServiceProvider.CreateScope();
+            var agentsProcessor = scope.ServiceProvider.GetRequiredService<IAgentsProcessor>();
+
+            var agents = await agentsProcessor.List();
+            var agent = agents.FirstOrDefault(item => item.Name == currentAgentName);
+
+            agent.Content["lastResult"].Value = $"ProcessError: {args.Exception.Message}";
+            agent.Content["lastRun"].Value = DateTime.UtcNow.ToString("o");
+            await agentsProcessor.Update(agent);
+        }
+
+        private async Task ProcessMessageAsync(ProcessMessageEventArgs args, int runAs, string currentAgentName, string agentToCallName)
+        {
+            using var scope = ServiceProvider.CreateScope();
+            var agentsProcessor = scope.ServiceProvider.GetRequiredService<IAgentsProcessor>();
+
+            var agents = await agentsProcessor.List();
+            var agent = agents.FirstOrDefault(item => item.Name == currentAgentName);
+            try
+            {
+                var body = System.Text.Encoding.UTF8.GetString(args.Message.Body);
+                var parametersValues = new Dictionary<string, string>
+                {
+                    {"parameter1", body}
+                };
+                await RunAgent("AzureServiceBus", agents, agent, agentToCallName, runAs, parametersValues);
+                await agentsProcessor.Update(agent);
+                await args.CompleteMessageAsync(args.Message);
+            }
+            catch (Exception ex)
+            {
+                agent.Content["lastResult"].Value = $"Error: {ex.Message}";
+                agent.Content["lastRun"].Value = DateTime.UtcNow.ToString("o");
+                await agentsProcessor.Update(agent);
+            }
+        }
+    }
+
+    public interface IAzureServiceBusListenerAgentService
+    {
+        public Task ProcessTask();
+    }
+}

@@ -53,5 +53,7 @@ namespace AiCoreApi.Models.DbModels
         AzureAiTranslator = 23,
         AzureAiSpeechCreateSpeech = 24,
         AzureAiSearch = 25,
+        AzureServiceBusNotification = 26,
+        AzureServiceBusListener = 27,
     }
 }

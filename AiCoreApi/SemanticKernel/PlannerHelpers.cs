@@ -43,7 +43,8 @@ namespace AiCoreApi.SemanticKernel
         private readonly IRedisAgent _redisAgent;
         private readonly IAzureAiTranslatorAgent _azureAiTranslatorAgent;
         private readonly IAzureAiSpeechCreateSpeechAgent _azureAiSpeechCreateSpeechAgent;
-        private readonly IAzureAiSearchAgent _azureAiSearchAgent; 
+        private readonly IAzureAiSearchAgent _azureAiSearchAgent;
+        private readonly IAzureServiceBusNotificationAgent _azureServiceBusNotificationAgent;
 
         public PlannerHelpers(
             RequestAccessor requestAccessor,
@@ -68,7 +69,8 @@ namespace AiCoreApi.SemanticKernel
             IRedisAgent redisAgent,
             IAzureAiTranslatorAgent azureAiTranslatorAgent,
             IAzureAiSpeechCreateSpeechAgent azureAiSpeechCreateSpeechAgent,
-            IAzureAiSearchAgent azureAiSearchAgent
+            IAzureAiSearchAgent azureAiSearchAgent,
+            IAzureServiceBusNotificationAgent azureServiceBusNotificationAgent
             )
         {
             _requestAccessor = requestAccessor;
@@ -94,6 +96,7 @@ namespace AiCoreApi.SemanticKernel
             _azureAiTranslatorAgent = azureAiTranslatorAgent;
             _azureAiSpeechCreateSpeechAgent = azureAiSpeechCreateSpeechAgent;
             _azureAiSearchAgent = azureAiSearchAgent;
+            _azureServiceBusNotificationAgent = azureServiceBusNotificationAgent;
         }
 
         private List<AgentModel>? _agentsList;
@@ -212,7 +215,8 @@ namespace AiCoreApi.SemanticKernel
                 { AgentType.Redis, _redisAgent },
                 { AgentType.AzureAiTranslator, _azureAiTranslatorAgent },
                 { AgentType.AzureAiSpeechCreateSpeech, _azureAiSpeechCreateSpeechAgent },
-                { AgentType.AzureAiSearch, _azureAiSearchAgent }
+                { AgentType.AzureAiSearch, _azureAiSearchAgent },
+                { AgentType.AzureServiceBusNotification, _azureServiceBusNotificationAgent }
             };
             return agentMapping;
         }

@@ -17,6 +17,7 @@
     <PackageReference Include="AspNetCore.Authentication.Basic" Version="8.0.0" />
     <PackageReference Include="AspNetCore.HealthChecks.UI.Client" Version="8.0.1" />
     <PackageReference Include="AutoMapper" Version="13.0.1" />
+    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.18.2" />
     <PackageReference Include="Azure.Storage.Blobs" Version="12.23.0" />
     <PackageReference Include="Html2Markdown" Version="7.0.1.65-beta" />
     <PackageReference Include="IronPython" Version="3.4.1" />

@@ -177,5 +177,6 @@ namespace AiCoreApi.SemanticKernel.Agents
     public interface IPythonCodeAgent
     {
         Task AddAgent(AgentModel agent, Kernel kernel, List<string> pluginsInstructions);
+        Task<string> DoCall(AgentModel agent, Dictionary<string, string> parameters);
     }
 }
