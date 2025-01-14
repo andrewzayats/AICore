@@ -55,5 +55,7 @@
         AzureAiSearch = 25,
         AzureServiceBusNotification = 26,
         AzureServiceBusListener = 27,
+        RabbitMqNotification = 28,
+        RabbitMqListener = 29,
     }
 }

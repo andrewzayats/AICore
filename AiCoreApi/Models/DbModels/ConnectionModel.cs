@@ -38,6 +38,7 @@ namespace AiCoreApi.Models.DbModels
         OpenAiEmbedding = 16,
         CohereLlm = 17,
         AzureServiceBus = 19,
+        RabbitMq = 20,
     }
 
     public static class ConnectionTypeExtensions

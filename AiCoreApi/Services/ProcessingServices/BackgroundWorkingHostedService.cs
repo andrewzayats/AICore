@@ -9,17 +9,20 @@ namespace AiCoreApi.Services.ProcessingServices
         private readonly ISchedulerAgentService _schedulerAgentService;
         private readonly IBackgroundWorkerAgentService _backgroundWorkerAgentService;
         private readonly IAzureServiceBusListenerAgentService _azureServiceBusListenerAgentService;
+        private readonly IRabbitMqListenerAgentService _rabbitMqListenerAgentService;
         private readonly Config _config;
 
         public BackgroundWorkingHostedService(
             ISchedulerAgentService schedulerAgentService,
             IBackgroundWorkerAgentService backgroundWorkerAgentService,
             IAzureServiceBusListenerAgentService azureServiceBusListenerAgentService,
+            IRabbitMqListenerAgentService rabbitMqListenerAgentService,
             Config config)
         {
             _schedulerAgentService = schedulerAgentService;
             _backgroundWorkerAgentService = backgroundWorkerAgentService;
             _azureServiceBusListenerAgentService = azureServiceBusListenerAgentService;
+            _rabbitMqListenerAgentService = rabbitMqListenerAgentService;
             _config = config;
         }
 
@@ -30,6 +33,7 @@ namespace AiCoreApi.Services.ProcessingServices
                 await _backgroundWorkerAgentService.ProcessTask();
                 await _schedulerAgentService.ProcessTask();
                 await _azureServiceBusListenerAgentService.ProcessTask();
+                await _rabbitMqListenerAgentService.ProcessTask();
                 await Task.Run(AutoCompactLargeObjectHeap, cancellationToken);
                 // Await all tasks to complete in parallel
                 //await Task.WhenAll(backgroundWorkerTask, schedulerTask, azureServiceBusListenerTask, autoCompactTask);

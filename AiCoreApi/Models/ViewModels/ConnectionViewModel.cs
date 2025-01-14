@@ -31,5 +31,6 @@
         OpenAiEmbedding = 16,
         CohereLlm = 17,
         AzureServiceBus = 19,
+        RabbitMq = 20,
     }
 }
