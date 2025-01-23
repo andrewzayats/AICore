@@ -27,6 +27,7 @@ public class AgentsController : ControllerBase
     }
 
     [HttpGet]
+    [CombinedAuthorize]
     [AdminAuthorize]
     public async Task<IActionResult> List()
     {
@@ -125,6 +126,7 @@ public class AgentsController : ControllerBase
     }
 
     [HttpPost("import")]
+    [CombinedAuthorize]
     [AdminAuthorize]
     public async Task<IActionResult> Import(IFormFile file, [FromForm] string agentsVersions)
     {
@@ -134,6 +136,7 @@ public class AgentsController : ControllerBase
     }
 
     [HttpPut("import/{confirmationId}")]
+    [CombinedAuthorize]
     [AdminAuthorize]
     public async Task<IActionResult> ImportConfirm(string confirmationId)
     {
