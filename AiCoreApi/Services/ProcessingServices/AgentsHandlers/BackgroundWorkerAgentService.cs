@@ -16,7 +16,6 @@ namespace AiCoreApi.Services.ProcessingServices.AgentsHandlers
         public BackgroundWorkerAgentService(
             ISchedulerAgentTaskProcessor schedulerAgentTaskProcessor,
             IAgentsProcessor agentsProcessor,
-            ILoginProcessor loginProcessor,
             IServiceProvider serviceProvider)
         {
             _schedulerAgentTaskProcessor = schedulerAgentTaskProcessor;

@@ -1,3 +1,4 @@
+using AiCoreApi.Common;
 using AiCoreApi.Data.Processors;
 using AiCoreApi.Models.DbModels;
 
@@ -11,6 +12,7 @@ namespace AiCoreApi.Services.ProcessingServices
 
         private readonly IIngestionProcessor _ingestionProcessor;
         private readonly ITaskProcessor _taskProcessor;
+        private readonly IInstanceSync _instanceSync;
         private readonly ILogger<IngestionSchedulerHostedService> _logger;
 
         private Timer? _timer;
@@ -18,10 +20,12 @@ namespace AiCoreApi.Services.ProcessingServices
         public IngestionSchedulerHostedService(
             IIngestionProcessor ingestionProcessor,
             ITaskProcessor taskProcessor,
+            IInstanceSync instanceSync,
             ILogger<IngestionSchedulerHostedService> logger)
         {
             _ingestionProcessor = ingestionProcessor;
             _taskProcessor = taskProcessor;
+            _instanceSync = instanceSync;
             _logger = logger;
         }
 
@@ -34,6 +38,10 @@ namespace AiCoreApi.Services.ProcessingServices
 
         public async void Process(object? state)
         {
+            // Check if this is the main instance, only the main instance should process Ingestion tasks
+            if (!_instanceSync.IsMainInstance)
+                return;
+
             try
             {
                 await ProcessSync();

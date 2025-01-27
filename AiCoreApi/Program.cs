@@ -39,6 +39,7 @@ public class Program
                   {
                       services.AddHostedService<TaskProcessingHostedService>();
                       services.AddHostedService<IngestionSchedulerHostedService>();
+                      services.AddHostedService<InstanceSyncHostedService>();
                       services.AddHostedService<BackgroundWorkingHostedService>();
                   });
 

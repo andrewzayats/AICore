@@ -10,15 +10,18 @@ namespace AiCoreApi.Services.ControllersServices
     public class SettingsService : ISettingsService
     {
         private readonly ExtendedConfig _extendedConfig;
+        private readonly IInstanceSync _instanceSync;
         private readonly ISettingsProcessor _settingsProcessor;
         private readonly IFeatureFlags _featureFlags;
 
         public SettingsService(
             ExtendedConfig extendedConfig,
+            IInstanceSync instanceSync,
             ISettingsProcessor settingsProcessor,
             IFeatureFlags featureFlags)
         {
             _extendedConfig = extendedConfig;
+            _instanceSync = instanceSync;
             _settingsProcessor = settingsProcessor;
             _featureFlags = featureFlags;
         }
@@ -57,7 +60,7 @@ namespace AiCoreApi.Services.ControllersServices
 
         public void Reboot()
         {
-            Environment.Exit(0);
+            _instanceSync.SetRestartNeeded();
         }
 
         public UiSettingsViewModel ListForUi()

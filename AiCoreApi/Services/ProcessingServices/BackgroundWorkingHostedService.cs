@@ -10,6 +10,7 @@ namespace AiCoreApi.Services.ProcessingServices
         private readonly IBackgroundWorkerAgentService _backgroundWorkerAgentService;
         private readonly IAzureServiceBusListenerAgentService _azureServiceBusListenerAgentService;
         private readonly IRabbitMqListenerAgentService _rabbitMqListenerAgentService;
+        private readonly IInstanceSync _instanceSync;
         private readonly Config _config;
 
         public BackgroundWorkingHostedService(
@@ -17,12 +18,14 @@ namespace AiCoreApi.Services.ProcessingServices
             IBackgroundWorkerAgentService backgroundWorkerAgentService,
             IAzureServiceBusListenerAgentService azureServiceBusListenerAgentService,
             IRabbitMqListenerAgentService rabbitMqListenerAgentService,
+            IInstanceSync instanceSync,
             Config config)
         {
             _schedulerAgentService = schedulerAgentService;
             _backgroundWorkerAgentService = backgroundWorkerAgentService;
             _azureServiceBusListenerAgentService = azureServiceBusListenerAgentService;
             _rabbitMqListenerAgentService = rabbitMqListenerAgentService;
+            _instanceSync = instanceSync;
             _config = config;
         }
 
@@ -30,10 +33,13 @@ namespace AiCoreApi.Services.ProcessingServices
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                await _backgroundWorkerAgentService.ProcessTask();
-                await _schedulerAgentService.ProcessTask();
                 await _azureServiceBusListenerAgentService.ProcessTask();
                 await _rabbitMqListenerAgentService.ProcessTask();
+                if (_instanceSync.IsMainInstance)
+                {
+                    await _backgroundWorkerAgentService.ProcessTask();
+                    await _schedulerAgentService.ProcessTask();
+                }
                 await Task.Run(AutoCompactLargeObjectHeap, cancellationToken);
                 // Await all tasks to complete in parallel
                 //await Task.WhenAll(backgroundWorkerTask, schedulerTask, azureServiceBusListenerTask, autoCompactTask);

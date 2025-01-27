@@ -1,3 +1,4 @@
+using AiCoreApi.Common;
 using AiCoreApi.Data.Processors;
 using AiCoreApi.Models.DbModels;
 using AiCoreApi.Services.IngestionServices;
@@ -10,6 +11,7 @@ namespace AiCoreApi.Services.ProcessingServices
         private const int MaxConcurrentTasks = 2;
 
         private readonly IServiceProvider _serviceProvider;
+        private readonly IInstanceSync _instanceSync;
         private readonly ILogger<TaskProcessingHostedService> _logger;
 
         private readonly object _sync = new();
@@ -19,9 +21,11 @@ namespace AiCoreApi.Services.ProcessingServices
 
         public TaskProcessingHostedService(
             IServiceProvider serviceProvider,
+            IInstanceSync instanceSync,
             ILogger<TaskProcessingHostedService> logger)
         {
             _serviceProvider = serviceProvider;
+            _instanceSync = instanceSync;
             _logger = logger;
         }
 
@@ -33,6 +37,10 @@ namespace AiCoreApi.Services.ProcessingServices
 
         public async void Process(object? state)
         {
+            // Check if this is the main instance, only the main instance should process Ingestion tasks
+            if (!_instanceSync.IsMainInstance)
+                return;
+
             try
             {
                 var taskProcessor =

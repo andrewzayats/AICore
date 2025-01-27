@@ -59,17 +59,25 @@ namespace AiCoreApi.Services.ProcessingServices.AgentsHandlers
                 }
 
                 var serviceBusConnectionString = connection.Content["serviceBusConnectionString"];
+                try
+                {
+                    var client = ServiceBusClients.ContainsKey(serviceBusConnectionString)
+                        ? ServiceBusClients[serviceBusConnectionString]
+                        : new ServiceBusClient(serviceBusConnectionString);
+                    ServiceBusClients[serviceBusConnectionString] = client;
 
-                var client = ServiceBusClients.ContainsKey(serviceBusConnectionString)
-                    ? ServiceBusClients[serviceBusConnectionString]
-                    : new ServiceBusClient(serviceBusConnectionString);
-                ServiceBusClients[serviceBusConnectionString] = client;
-
-                var processor = client.CreateProcessor(queueOrTopicName);
-                ServiceBusProcessors.Add(key, processor);
-                processor.ProcessMessageAsync += async args => await ProcessMessageAsync(args, runAs, agent.Name, agentToCall);
-                processor.ProcessErrorAsync += async args => await ProcessErrorAsync(args, agent.Name);
-                await processor.StartProcessingAsync();
+                    var processor = client.CreateProcessor(queueOrTopicName);
+                    ServiceBusProcessors.Add(key, processor);
+                    processor.ProcessMessageAsync += async args => await ProcessMessageAsync(args, runAs, agent.Name, agentToCall);
+                    processor.ProcessErrorAsync += async args => await ProcessErrorAsync(args, agent.Name);
+                    await processor.StartProcessingAsync();
+                }
+                catch (Exception e)
+                {
+                    agent.Content["lastResult"].Value = $"Error: {e.Message}";
+                    agent.Content["lastRun"].Value = DateTime.UtcNow.ToString("o");
+                    await _agentsProcessor.Update(agent);
+                }
             }
             // Remove old processors
             var currentServiceBusProcessors = ServiceBusProcessors.ToList();
@@ -102,22 +110,44 @@ namespace AiCoreApi.Services.ProcessingServices.AgentsHandlers
 
             var agents = await agentsProcessor.List();
             var agent = agents.FirstOrDefault(item => item.Name == currentAgentName);
+
             try
             {
-                var body = System.Text.Encoding.UTF8.GetString(args.Message.Body);
+                var body = System.Text.Encoding.UTF8.GetString(args.Message.Body.ToArray());
                 var parametersValues = new Dictionary<string, string>
                 {
                     {"parameter1", body}
                 };
+
+                var cts = new CancellationTokenSource();
+                var renewalTask = RenewLockAsync(args.Message, args, cts.Token);
                 await RunAgent("AzureServiceBus", agents, agent, agentToCallName, runAs, parametersValues);
                 await agentsProcessor.Update(agent);
                 await args.CompleteMessageAsync(args.Message);
+                cts.Cancel();
+                await renewalTask;
             }
             catch (Exception ex)
             {
                 agent.Content["lastResult"].Value = $"Error: {ex.Message}";
                 agent.Content["lastRun"].Value = DateTime.UtcNow.ToString("o");
                 await agentsProcessor.Update(agent);
+            }
+        }
+
+        private async Task RenewLockAsync(ServiceBusReceivedMessage message, ProcessMessageEventArgs args, CancellationToken token)
+        {
+            while (!token.IsCancellationRequested)
+            {
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(20), token);
+                    await args.RenewMessageLockAsync(message);
+                }
+                catch (Exception ex) when (token.IsCancellationRequested)
+                {
+                    // Ignore exceptions if cancellation is requested
+                }
             }
         }
     }

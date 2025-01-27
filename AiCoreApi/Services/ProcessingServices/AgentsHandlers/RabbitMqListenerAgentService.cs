@@ -70,18 +70,26 @@ namespace AiCoreApi.Services.ProcessingServices.AgentsHandlers
                     Uri = new Uri(rabbitMqConnectionString)
                 };
 
-                var mqConnection = RabbitMqConnections.ContainsKey(rabbitMqConnectionString)
-                    ? RabbitMqConnections[rabbitMqConnectionString]
-                    : factory.CreateConnection();
-                RabbitMqConnections[rabbitMqConnectionString] = mqConnection;
+                try
+                {
+                    var mqConnection = RabbitMqConnections.ContainsKey(rabbitMqConnectionString)
+                        ? RabbitMqConnections[rabbitMqConnectionString]
+                        : factory.CreateConnection();
+                    RabbitMqConnections[rabbitMqConnectionString] = mqConnection;
+                    var channel = mqConnection.CreateModel();
+                    RabbitMqChannels[key] = channel;
 
-                var channel = mqConnection.CreateModel();
-                RabbitMqChannels[key] = channel;
+                    var consumer = new EventingBasicConsumer(channel);
+                    consumer.Received += async (model, ea) => await ProcessMessageAsync(ea, runAs, agent.Name, agentToCall);
 
-                var consumer = new EventingBasicConsumer(channel);
-                consumer.Received += async (model, ea) => await ProcessMessageAsync(ea, runAs, agent.Name, agentToCall);
-
-                channel.BasicConsume(queue: queueName, autoAck: false, consumer: consumer);
+                    channel.BasicConsume(queue: queueName, autoAck: false, consumer: consumer);
+                }
+                catch(Exception e)
+                {
+                    agent.Content["lastResult"].Value = $"Error: {e.Message}";
+                    agent.Content["lastRun"].Value = DateTime.UtcNow.ToString("o");
+                    await _agentsProcessor.Update(agent);
+                }
             }
 
             // Remove old channels

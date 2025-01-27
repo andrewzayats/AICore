@@ -7,7 +7,6 @@ public class Config
 
     public Config(string appSettings)
     {
-        IsMainInstance = GetValue<bool>(appSettings, "IsMainInstance");
         var version = GetValue<string>(appSettings, "ProductVersion");
         ProductVersion = string.IsNullOrWhiteSpace(version) ? new Version(1, 0) : Version.Parse(version);
         DbConnectionTimeout = GetValue<int>(appSettings, "DbConnectionTimeout");
@@ -19,6 +18,8 @@ public class Config
         DbTimeout = GetValue<int>(appSettings, "DbTimeout");
         DbPgPoolSize = GetValue<int>(appSettings, "DbPgPoolSize");
         AutoCompactLargeObjectHeap = GetValue<bool>(appSettings, "AutoCompactLargeObjectHeap");
+        DistributedCacheUrl = GetValue<string>(appSettings, "DistributedCacheUrl");
+        DistributedCachePassword = GetValue<string>(appSettings, "DistributedCachePassword");
     }
 
     private T GetValue<T>(string config, string key)
@@ -33,7 +34,6 @@ public class Config
         }
         return (T) Convert.ChangeType(environmentValue, typeof(T));
     }
-    public bool IsMainInstance { get; set; }
     public Version ProductVersion { get; set; }
     public string DbServer { get; set; }
     public int DbPort { get; set; }
@@ -44,4 +44,6 @@ public class Config
     public int DbPgPoolSize { get; set; }
     public int DbConnectionTimeout { get; set; }
     public bool AutoCompactLargeObjectHeap { get; set; }
+    public string DistributedCacheUrl { get; set; }
+    public string DistributedCachePassword { get; set; }
 }

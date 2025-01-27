@@ -37,15 +37,19 @@ namespace AiCoreApi.SemanticKernel.Agents
         private readonly IPlannerHelpers _plannerHelpers;
         private readonly RequestAccessor _requestAccessor;
         private readonly ResponseAccessor _responseAccessor;
+        private readonly ICacheAccessor _cacheAccessor;
 
         public CsharpCodeAgent(
             IPlannerHelpers plannerHelpers,
             RequestAccessor requestAccessor,
-            ResponseAccessor responseAccessor)
+            ResponseAccessor responseAccessor,
+            ICacheAccessor cacheAccessor)
         {
             _plannerHelpers = plannerHelpers;
             _requestAccessor = requestAccessor;
             _responseAccessor = responseAccessor;
+            _cacheAccessor = cacheAccessor;
+            _cacheAccessor.KeyPrefix = "AgentExecution-";
         }
 
         public override async Task<string> DoCall(
@@ -95,10 +99,40 @@ namespace AiCoreApi.SemanticKernel.Agents
                 // Execute the script
                 var executor = new DynamicAssemblyExecutor();
                 Func<string, List<string>?, string> executeAgent = ExecuteAgent;
-                var result = executor.Execute(dllPath, "Agent", "Run", new object[]
+                Func<string, string> getCacheValue = _cacheAccessor.GetCacheValue;
+                Func<string, string, int, string> setCacheValue = _cacheAccessor.SetCacheValue;
+
+                // Dynamically get method info
+                var methodInfo = executor.GetMethodInfo(dllPath, "Agent", "Run");
+
+                if (methodInfo == null)
                 {
-                    parameters, _requestAccessor, _responseAccessor, executeAgent
-                }).ToString();
+                    throw new InvalidOperationException("The 'Run' method could not be found.");
+                }
+
+                // Prepare arguments based on parameter count
+                var methodParameters = methodInfo.GetParameters();
+                object?[] args;
+
+                if (methodParameters.Length == 4) // Only has base parameters
+                {
+                    args = new object?[]
+                    {
+                        parameters, _requestAccessor, _responseAccessor, executeAgent
+                    };
+                }
+                else if (methodParameters.Length == 6) // Includes getCacheValue and setCacheValue
+                {
+                    args = new object?[]
+                    {
+                        parameters, _requestAccessor, _responseAccessor, executeAgent, getCacheValue, setCacheValue
+                    };
+                }
+                else
+                {
+                    throw new InvalidOperationException("The 'Run' method has an unsupported parameter count.");
+                }
+                var result = executor.Execute(dllPath, "Agent", "Run", args)?.ToString();
                 _responseAccessor.AddDebugMessage(DebugMessageSenderName, "C# Code Result", result);
                 return result;
             }
@@ -118,7 +152,9 @@ namespace AiCoreApi.SemanticKernel.Agents
                 Parameters = parameters,
                 RequestAccessor = _requestAccessor,
                 ResponseAccessor = _responseAccessor,
-                ExecuteAgent = ExecuteAgent
+                ExecuteAgent = ExecuteAgent,
+                GetCacheValue = _cacheAccessor.GetCacheValue,
+                SetCacheValue = _cacheAccessor.SetCacheValue
             };
 
             // Clean the script code by removing #r directives
@@ -375,6 +411,8 @@ namespace AiCoreApi.SemanticKernel.Agents
             public RequestAccessor RequestAccessor { get; set; }
             public ResponseAccessor ResponseAccessor { get; set; }
             public Func<string, List<string>?, string> ExecuteAgent { get; set; }
+            public Func<string, string> GetCacheValue { get; set; }
+            public Func<string, string, int, string> SetCacheValue { get; set; }
         }
 
         public class DynamicCompiler
@@ -467,6 +505,31 @@ namespace AiCoreApi.SemanticKernel.Agents
 
                     var instance = Activator.CreateInstance(type);
                     return method.Invoke(instance, parameters);
+                }
+                finally
+                {
+                    loadContext.Unload();
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+                    GC.Collect();
+                }
+            }
+
+            public MethodInfo? GetMethodInfo(string dllPath, string typeName, string methodName)
+            {
+                var loadContext = new CustomAssemblyLoadContext();
+                try
+                {
+                    var assembly = loadContext.LoadFromAssemblyPath(dllPath);
+                    var type = assembly.GetType(typeName);
+                    if (type == null)
+                        throw new Exception($"Type '{typeName}' not found in assembly.");
+
+                    var method = type.GetMethod(methodName);
+                    if (method == null)
+                        throw new Exception($"Method '{methodName}' not found in type '{typeName}'.");
+
+                    return method; // Return MethodInfo object
                 }
                 finally
                 {

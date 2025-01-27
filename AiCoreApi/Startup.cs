@@ -53,6 +53,15 @@ public class Startup
         // See: https://stackoverflow.com/questions/60047465/more-than-twenty-iserviceprovider-instances-have-been-created-for-internal-use
         services.AddSingleton<IDataSourceProvider, DataSourceProvider>(e => new DataSourceProvider(_config));
         services.ForInterfacesMatching("^I").OfAssemblies(Assembly.GetExecutingAssembly()).AddTransients();
+        services.AddStackExchangeRedisCache(options =>
+        {
+            options.Configuration = _config.DistributedCacheUrl;
+            options.ConfigurationOptions = new StackExchange.Redis.ConfigurationOptions
+            {
+                EndPoints = { _config.DistributedCacheUrl },
+                Password = _config.DistributedCachePassword,
+            };
+        });
         services.AddTransient<Db>();
         services.AddHttpContextAccessor();
         services.AddSingleton(sp => sp);
@@ -65,7 +74,6 @@ public class Startup
         _logger = serviceProvider.GetRequiredService<ILogger<Startup>>();
         var extendedConfig = serviceProvider.GetRequiredService<ExtendedConfig>();
         services.AddSingleton<IFileIngestionClient>(sp => new FileIngestionClient(sp));
-        services.AddDistributedMemoryCache();
 
         var tokenValidationParameters = new TokenValidationParameters
         {

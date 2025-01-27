@@ -5,8 +5,6 @@ using AiCoreApi.Models.DbModels;
 using AiCoreApi.Common;
 using System.Web;
 using AiCoreApi.Data.Processors;
-using Azure.Core;
-using AiCoreApi.Authorization;
 
 namespace AiCoreApi.SemanticKernel.Agents
 {

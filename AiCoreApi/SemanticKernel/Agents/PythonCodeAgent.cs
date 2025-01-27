@@ -5,7 +5,6 @@ using System.Web;
 using AiCoreApi.Common;
 using Python.Runtime;
 using System.Text.RegularExpressions;
-using DocumentFormat.OpenXml.Office.Word;
 
 namespace AiCoreApi.SemanticKernel.Agents
 {
@@ -36,15 +35,19 @@ namespace AiCoreApi.SemanticKernel.Agents
         private readonly IPlannerHelpers _plannerHelpers;
         private readonly RequestAccessor _requestAccessor;
         private readonly ResponseAccessor _responseAccessor;
+        private readonly ICacheAccessor _cacheAccessor;
 
         public PythonCodeAgent(
             IPlannerHelpers plannerHelpers,
             RequestAccessor requestAccessor,
-            ResponseAccessor responseAccessor)
+            ResponseAccessor responseAccessor,
+            ICacheAccessor cacheAccessor)
         {
             _plannerHelpers = plannerHelpers;
             _requestAccessor = requestAccessor;
             _responseAccessor = responseAccessor;
+            _cacheAccessor = cacheAccessor;
+            _cacheAccessor.KeyPrefix = "AgentExecution-";
         }
 
         public override async Task<string> DoCall(
@@ -89,6 +92,8 @@ namespace AiCoreApi.SemanticKernel.Agents
                         }
 
                         builtIns.ExecuteAgent = new Func<string, string[]?, string>(ExecuteAgent);
+                        builtIns.GetCacheValue = new Func<string, string>(_cacheAccessor.GetCacheValue);
+                        builtIns.SetCacheValue = new Func<string, string, int, string>(_cacheAccessor.SetCacheValue);
                         PyObject requestAccessorPy = _requestAccessor.ToPython();
                         PyObject responseAccessorPy = _responseAccessor.ToPython();
                         PyObject parametersPy = parameters.ToPython();

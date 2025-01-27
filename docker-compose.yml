@@ -4,7 +4,6 @@ services:
     restart: always
     container_name: ai-core-api
     environment:
-      - ISMAININSTANCE=true
       - PRODUCTVERSION=1.11
       - ASPNETCORE_URLS=http://+:80
       - AUTOCOMPACTLARGEOBJECTHEAP=true  
@@ -52,6 +51,8 @@ services:
       - FEATURE_SETTINGS=True
       - FEATURE_SPENTMANAGEMENT=True
       - LOGLEVEL=Debug
+      - DISTRIBUTEDCACHEURL=host.docker.internal:6379
+      - DISTRIBUTEDCACHEPASSWORD=AiCatalystIsTheBest!
     ports:
       - "7878:80"
     networks:
