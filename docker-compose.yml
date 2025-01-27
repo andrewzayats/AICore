@@ -82,6 +82,17 @@ services:
       - "5439:5432"
     networks:
       - ai-core-network
+      
+  ai-core-cache:
+    image: redis:latest
+    command: ["redis-server", "--requirepass", "AiCatalystIsTheBest!"]
+    ports:
+      - "6379:6379"
+    environment:
+      - REDIS_USERNAME=aicatalyst@viacode.com
+      - REDIS_PASSWORD=AiCatalystIsTheBest!
+    networks:
+      - ai-core-network
 
 volumes:
   ai-core-db-volume:
