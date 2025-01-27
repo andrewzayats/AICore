@@ -110,6 +110,7 @@ namespace AiCoreApi.SemanticKernel.Agents
                 Name = blob.Name,
                 Size = blob.Properties.ContentLength
             }).ToList();
+
             return result.ToJson();
         }
 
