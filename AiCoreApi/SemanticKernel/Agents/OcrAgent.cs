@@ -249,6 +249,16 @@ namespace AiCoreApi.SemanticKernel.Agents
                         });
                     }
                 }
+                // Angle, Width, Height
+                foreach (var keyValuePair in result.KeyValuePairs)
+                {
+                    var pageId = keyValuePair.Key.BoundingRegions[0].PageNumber - 1;
+                    var ocrPage = result.Pages[pageId];
+                    var page = ocrResult.Pages[pageId];
+                    page.Angle = ocrPage.Angle ?? 0;
+                    page.Width = ocrPage.Width ?? 0;
+                    page.Height = ocrPage.Height ?? 0;
+                }
             }
 
             if (outputFormat == AgentOutputFormat.Markdown)
@@ -559,6 +569,13 @@ namespace AiCoreApi.SemanticKernel.Agents
             public List<ImageItem>? Images { get; set; }
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public List<Field>? Fields { get; set; }
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public float Angle { get; set; }
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public float Width { get; set; }
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public float Height { get; set; }
+
         }
         public class Field
         {
