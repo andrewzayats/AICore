@@ -5,21 +5,25 @@ using System.Text;
 using System.Web;
 using AiCoreApi.Common.Extensions;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.ML.OnnxRuntimeGenAI;
 
 namespace AiCoreApi.Common.SsoSources
 {
     public class MicrosoftSso : IMicrosoftSso
     {
-        private readonly ExtendedConfig _config;
+        private readonly Config _config;
+        private readonly ExtendedConfig _extendedConfig;
         private readonly IDistributedCache _distributedCache;
         private readonly IHttpClientFactory _httpClientFactory;
 
         public MicrosoftSso(
-            ExtendedConfig config,
+            Config config,
+            ExtendedConfig extendedConfig,
             IDistributedCache distributedCache,
             IHttpClientFactory httpClientFactory)
         {
             _config = config;
+            _extendedConfig = extendedConfig;
             _distributedCache = distributedCache;
             _httpClientFactory = httpClientFactory;
         }
@@ -40,13 +44,13 @@ namespace AiCoreApi.Common.SsoSources
         public async Task<ExtendedTokenModel> GetAccessTokenByCodeAsync(string code)
         {
             using var httpClient = GetHttpClient();
-            var body = $"client_id={_config.ClientId}"
+            var body = $"client_id={_extendedConfig.ClientId}"
                + $"&scope={_scope}"
                + $"&code={code}"
                + $"&redirect_uri={HttpUtility.UrlEncode(RedirectUrl)}"
                + "&grant_type=authorization_code"
                + $"&code_verifier={CodeChallenge}"
-               + (string.IsNullOrEmpty(_config.ClientSecret) ? "" : $"&client_secret={_config.ClientSecret}");
+               + (string.IsNullOrEmpty(_extendedConfig.ClientSecret) ? "" : $"&client_secret={_extendedConfig.ClientSecret}");
             var message = new HttpRequestMessage(HttpMethod.Post, $"https://login.microsoftonline.com/{_defaultTenant}/oauth2/v2.0/token")
             {
                 Content = new StringContent(body, Encoding.UTF8, "application/x-www-form-urlencoded")
@@ -72,7 +76,7 @@ namespace AiCoreApi.Common.SsoSources
         public string GetLoginRedirectUrl(string state)
         {
             var url = $"https://login.microsoftonline.com/{_defaultTenant}/oauth2/v2.0/authorize?";
-            var parameters = $"client_id={_config.ClientId}"
+            var parameters = $"client_id={_extendedConfig.ClientId}"
                 + "&client_info=1"
                 + "&response_type=code"
                 + $"&redirect_uri={HttpUtility.UrlEncode(RedirectUrl)}"

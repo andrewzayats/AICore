@@ -20,6 +20,8 @@ public class Config
         AutoCompactLargeObjectHeap = GetValue<bool>(appSettings, "AutoCompactLargeObjectHeap");
         DistributedCacheUrl = GetValue<string>(appSettings, "DistributedCacheUrl");
         DistributedCachePassword = GetValue<string>(appSettings, "DistributedCachePassword");
+        AppUrl = GetValue<string>(appSettings, "AppUrl");
+        QdrantUrl = GetValue<string>(appSettings, "QdrantUrl");
     }
 
     private T GetValue<T>(string config, string key)
@@ -34,6 +36,7 @@ public class Config
         }
         return (T) Convert.ChangeType(environmentValue, typeof(T));
     }
+
     public Version ProductVersion { get; set; }
     public string DbServer { get; set; }
     public int DbPort { get; set; }
@@ -46,4 +49,6 @@ public class Config
     public bool AutoCompactLargeObjectHeap { get; set; }
     public string DistributedCacheUrl { get; set; }
     public string DistributedCachePassword { get; set; }
+    public string AppUrl { get; set; }
+    public string QdrantUrl { get; set; }
 }

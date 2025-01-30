@@ -13,11 +13,11 @@ namespace AiCoreApi.Services.IngestionServices
             public const string VectorDbConnectionField = "VectorDBConnectionName";
         }
         private readonly IConnectionProcessor _connectionProcessor;
-        private readonly ExtendedConfig _config;
+        private readonly Config _config;
 
         public DataIngestionHelperService(
             IConnectionProcessor connectionProcessor,
-            ExtendedConfig config)
+            Config config)
         {
             _connectionProcessor = connectionProcessor;
             _config = config;

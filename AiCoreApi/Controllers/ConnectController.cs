@@ -15,7 +15,8 @@ namespace AiCoreApi.Controllers
     public class ConnectController : ControllerBase
     {
         private readonly IConnectService _connectService;
-        private readonly ExtendedConfig _config;
+        private readonly Config _config;
+        private readonly ExtendedConfig _extendedConfig;
         private readonly IMicrosoftSso _microsoftSso;
         private readonly IDistributedCache _distributedCache;
         private const int SsoSessionTimeoutMinutes = 5;
@@ -23,12 +24,14 @@ namespace AiCoreApi.Controllers
 
         public ConnectController(
             IConnectService connectService,
-            ExtendedConfig config,
+            Config config,
+            ExtendedConfig extendedConfig,
             IMicrosoftSso microsoftSso,
             IDistributedCache distributedCache)           
         {
             _connectService = connectService;
             _config = config;
+            _extendedConfig = extendedConfig;
             _microsoftSso = microsoftSso;
             _distributedCache = distributedCache;
     }
@@ -59,7 +62,7 @@ namespace AiCoreApi.Controllers
             [FromForm(Name = "response_type")] string responseType,
             [FromForm(Name = "state")] string? state)
         {
-            if (clientId != _config.AuthIssuer)
+            if (clientId != _extendedConfig.AuthIssuer)
                 return BadRequest("Invalid client_id");
             if (string.IsNullOrEmpty(redirectUri))
                 return BadRequest("Invalid redirect_uri");
@@ -133,7 +136,7 @@ namespace AiCoreApi.Controllers
                 var clientId = Request.Form["client_id"].ToString();
                 if (string.IsNullOrEmpty(refreshToken))
                     return BadRequest("Invalid refresh_token");
-                if (clientId != _config.AuthIssuer)
+                if (clientId != _extendedConfig.AuthIssuer)
                     return BadRequest("Invalid client_id");
 
                 var tokenModel = await _connectService.GetByRefreshToken(refreshToken);
@@ -149,7 +152,7 @@ namespace AiCoreApi.Controllers
                 var codeVerifier = Request.Form["code_verifier"].ToString();
                 if (string.IsNullOrEmpty(code))
                     return BadRequest("Invalid code");
-                if (clientId != _config.AuthIssuer)
+                if (clientId != _extendedConfig.AuthIssuer)
                     return BadRequest("Invalid client_id");
                 if (string.IsNullOrEmpty(redirectUri))
                     return BadRequest("Invalid redirect_uri");
@@ -179,7 +182,7 @@ namespace AiCoreApi.Controllers
             var host = _config.AppUrl;
             return Ok(new
             {
-                issuer = _config.AuthIssuer,
+                issuer = _extendedConfig.AuthIssuer,
                 authorization_endpoint = $"{host}/connect/authorize",
                 end_session_endpoint = $"{host}/connect/logout",
                 token_endpoint = $"{host}/connect/token",

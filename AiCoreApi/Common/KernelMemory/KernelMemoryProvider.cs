@@ -7,17 +7,20 @@ namespace AiCoreApi.Common.KernelMemory
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly IHttpClientFactory _httpClientFactory;
-        private readonly ExtendedConfig _config;
+        private readonly Config _config;
+        private readonly ExtendedConfig _extendedConfig;
 
         public KernelMemoryProvider(
             IServiceProvider serviceProvider,
             IHttpClientFactory httpClientFactory,
-            ExtendedConfig config)
+            Config config,
+            ExtendedConfig extendedConfig)
             
         {
             _serviceProvider = serviceProvider;
             _httpClientFactory = httpClientFactory;
             _config = config;
+            _extendedConfig = extendedConfig;
         }
 
         public IKernelMemory GetKernelMemory(ConnectionModel llmConnection, ConnectionModel embeddingConnection, ConnectionModel? vectorDbConnection)
@@ -30,7 +33,7 @@ namespace AiCoreApi.Common.KernelMemory
 
             var searchClientConfig = new SearchClientConfig
             {
-                EmptyAnswer = _config.NoInformationFoundText,
+                EmptyAnswer = _extendedConfig.NoInformationFoundText,
                 AnswerTokens = Convert.ToInt32(llmConnection.Content["maxAnswersTokens"]),
                 Temperature = Convert.ToDouble(llmConnection.Content["temperature"]),
             };
