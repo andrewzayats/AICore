@@ -56,22 +56,12 @@ public class ExtendedConfig
             return defaultValue;
         return default;
     }
-    [Category(CategoryAttribute.ConfigCategoryEnum.Common)]
-    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Hidden)]
-    [Description("Qdrant Url")]
-    [Tooltip("Qdrant Url with vector data. Qdrant DB is a vector search engine used to support RAG functionality.")]
-    public string QdrantUrl => GetValue<string>("QdrantUrl");
 
     [Category(CategoryAttribute.ConfigCategoryEnum.Common)]
     [DataType(DataTypeAttribute.ConfigDataTypeEnum.Boolean)]
     [Description("Use Search tab in main menu")]
     [Tooltip("Indicates if the Search tab should be visible in the main menu. In Search mode, we utilize a highly efficient vector search against the Qdrant database, avoiding the cost of token-based Chat.")]
     public bool UseSearchTab => GetValue<bool>("UseSearchTab");
-
-    [Category(CategoryAttribute.ConfigCategoryEnum.Common)]
-    [Description("Application Url")]
-    [Tooltip("Application Url is used to generate links in the application. Sample: https://sample.ai-dev.space/api/v1")]
-    public string AppUrl => GetValue<string>("AppUrl");
 
     [Category(CategoryAttribute.ConfigCategoryEnum.Common)]
     [Description("Proxy")]

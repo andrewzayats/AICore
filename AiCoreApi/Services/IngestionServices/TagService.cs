@@ -15,7 +15,7 @@ namespace AiCoreApi.Services.IngestionServices
         private readonly IIngestionProcessor _ingestionProcessor;
         private readonly IDocumentMetadataProcessor _documentProcessor;
         private readonly ITaskProcessor _taskProcessor;
-        private readonly ExtendedConfig _config;
+        private readonly Config _config;
         private readonly ILogger<TagService> _logger;
         private readonly IDataIngestionHelperService _dataIngestionHelperService;
 
@@ -23,7 +23,7 @@ namespace AiCoreApi.Services.IngestionServices
             IIngestionProcessor ingestionProcessor,
             IDocumentMetadataProcessor documentProcessor,
             ITaskProcessor taskProcessor,
-            ExtendedConfig config,
+            Config config,
             ILogger<TagService> logger,
             IDataIngestionHelperService dataIngestionHelperService)
         {
