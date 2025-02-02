@@ -48,6 +48,14 @@ namespace AiCoreApi.SemanticKernel
                     new List<string>(),
                     httpClient: httpClient);
             }
+            else if (connectionModel.Type == ConnectionType.AzureOpenAiLlmCarousel)
+            {
+                kernelBuilder = kernelBuilder.AddAzureOpenAIChatCompletion(
+                    nameof(ConnectionType.AzureOpenAiLlmCarousel),
+                    "https://api.openai.azure.com",
+                    connectionModel.Content["azureOpenAiLlmConnections"],
+                    httpClient: httpClient);
+            }
             return kernelBuilder.Build();
         }
 

@@ -1,4 +1,6 @@
-﻿namespace AiCoreApi.Models.ViewModels
+﻿using Newtonsoft.Json;
+
+namespace AiCoreApi.Models.ViewModels
 {
     public class AgentExportModel
     {
@@ -16,5 +18,7 @@
         public string Name { get; set; } = string.Empty;
         public string Code { get; set; } = string.Empty;
         public string Value { get; set; } = string.Empty;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? Extension { get; set; }
     }
 }

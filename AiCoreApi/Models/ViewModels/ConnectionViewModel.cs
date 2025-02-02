@@ -32,5 +32,6 @@
         CohereLlm = 17,
         AzureServiceBus = 19,
         RabbitMq = 20,
+        AzureOpenAiLlmCarousel = 21,
     }
 }

@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Newtonsoft.Json;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AiCoreApi.Models.DbModels
@@ -25,6 +26,8 @@ namespace AiCoreApi.Models.DbModels
         public string Name { get; set; } = string.Empty;
         public string Code { get; set; } = string.Empty;
         public string Value { get; set; } = string.Empty;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? Extension { get; set; }
     }
 
     public enum AgentType

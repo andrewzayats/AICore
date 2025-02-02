@@ -30,13 +30,13 @@ public static class Extensions
         }
     }
 
-    public static string? ToJson(this object? value)
+    public static string? ToJson(this object? value, bool formatOutput = false)
     {
         if (value == null)
             return null;
         try
         {
-            return JsonConvert.SerializeObject(value);
+            return JsonConvert.SerializeObject(value, formatOutput ? Formatting.Indented : Formatting.None);
         }
         catch
         {
@@ -187,5 +187,17 @@ public static class Extensions
         if (base64Index == -1)
             return base64Data;
         return new string(base64Span[(base64Index + 8)..]);
+    }
+
+    private static readonly Random Random = new Random();
+    public static T GetRandomElement<T>(this List<T> list)
+    {
+        if (list == null || list.Count == 0)
+        {
+            throw new ArgumentException("List cannot be null or empty.");
+        }
+
+        int index = Random.Next(list.Count);
+        return list[index];
     }
 }
