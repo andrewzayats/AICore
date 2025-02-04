@@ -37,12 +37,15 @@ namespace AiCoreApi.Common
                 return await base.SendAsync(request, cancellationToken);
             var modelDeploymentName = await GetModelDeploymentName(request, connectionType.Value, cancellationToken);
             // calculate tokens only for OpenAI models
+
             if (string.IsNullOrEmpty(modelDeploymentName))
                 return await base.SendAsync(request, cancellationToken);
             var connections = await connectionProcessor.List();
+
             var connection = connections.FirstOrDefault(conn => conn.Type == connectionType.Value &&
                 (conn.Type == ConnectionType.AzureOpenAiLlm && conn.Content["deploymentName"].ToLower() == modelDeploymentName) ||
                 (conn.Type == ConnectionType.OpenAiLlm && conn.Content["modelName"].ToLower() == modelDeploymentName));
+            connection = await ApplyAzureOpenAiLlmCarousel(request, connections, connection, modelDeploymentName);
             if (connection == null)
                 throw new TokensLimitException($"Model Deployment was not found in LLM connections: {modelDeploymentName}");
             var tokenLimitPerDay = Convert.ToInt64(connection.Content["tokenLimitPerDay"]);
@@ -82,10 +85,36 @@ namespace AiCoreApi.Common
                     responseAccessor.AddSpentTokens(connection.Name, currentRequestSpent.TokensOutgoing, currentRequestSpent.TokensIncoming);
 
             }
-
             return response;
         }
-        
+
+        private async Task<ConnectionModel> ApplyAzureOpenAiLlmCarousel(HttpRequestMessage request, List<ConnectionModel> connections, ConnectionModel connection, string modelDeploymentName)
+        {
+            if (modelDeploymentName == nameof(ConnectionType.AzureOpenAiLlmCarousel) || request.Headers.Contains(nameof(ConnectionType.AzureOpenAiLlmCarousel)))
+            {
+                var headerName = modelDeploymentName == nameof(ConnectionType.AzureOpenAiLlmCarousel) ? "api-key" : nameof(ConnectionType.AzureOpenAiLlmCarousel);
+                var connectionIds = request.Headers.GetValues(headerName).First().Split(",")
+                    .Select(connectionId => Convert.ToInt32(connectionId))
+                    .Where(connectionId => connections.Exists(x => x.ConnectionId == connectionId))
+                    .ToList();
+
+                var connectionId = connectionIds.GetRandomElement();
+                connection = connections.FirstOrDefault(conn => conn.ConnectionId == connectionId);
+                if (connection != null)
+                {
+                    request.RequestUri = new Uri(connection.Content["endpoint"]
+                        + Regex.Replace(request.RequestUri.PathAndQuery, @"(/deployments/)([^/]+)(/chat/)", $"$1{connection.Content["deploymentName"]}$3"));
+                    request.Headers.Remove("api-key");
+                    request.Headers.Add("api-key", connection.Content["azureOpenAiKey"]);
+
+                    if (modelDeploymentName == nameof(ConnectionType.AzureOpenAiLlmCarousel))
+                    {
+                        request.Headers.Add(nameof(ConnectionType.AzureOpenAiLlmCarousel), string.Join(",", connectionIds));
+                    }
+                }
+            }
+            return connection;
+        }
 
         private ConnectionType? GetConnectionType(HttpRequestMessage request)
         {

@@ -128,11 +128,24 @@ public class AgentsService : IAgentsService
             {
                 foreach (var agent in agentsToExportResult)
                 {
+                    foreach (var content in agent.Content)
+                    {
+                        if(string.IsNullOrEmpty(content.Value.Extension)) 
+                            continue;
+                        var fileName = $"{agent.Name}-{content.Value.Code}.{content.Value.Extension}";
+                        var contentEntry = archive.CreateEntry(fileName);
+                        using (var entryStream = contentEntry.Open())
+                        using (var streamWriter = new StreamWriter(entryStream))
+                        {
+                            await streamWriter.WriteAsync(content.Value.Value);
+                        }
+                        content.Value.Value = fileName;
+                    }
                     var entry = archive.CreateEntry($"{agent.Name}.json");
                     using (var entryStream = entry.Open())
                     using (var streamWriter = new StreamWriter(entryStream))
                     {
-                        await streamWriter.WriteAsync(agent.ToJson());
+                        await streamWriter.WriteAsync(agent.ToJson(true));
                     }
                 }
             }
@@ -176,6 +189,7 @@ public class AgentsService : IAgentsService
     public async Task<ImportAgentsResultModel> ImportAgents(IFormFile file, Dictionary<Models.ViewModels.AgentType, int> agentVersions)
     {
         var agentExportModels = new List<AgentExportModel>();
+        var content = new Dictionary<string, string>();
         using (var stream = file.OpenReadStream())
         using (var archive = new ZipArchive(stream, ZipArchiveMode.Read))
         {
@@ -185,11 +199,23 @@ public class AgentsService : IAgentsService
                 {
                     using (var streamReader = new StreamReader(entryStream))
                     {
-                        var agentJson = await streamReader.ReadToEndAsync();
-                        var agent = agentJson.JsonGet<AgentExportModel>();
-                        if(agent != null)
+                        var fileContent = await streamReader.ReadToEndAsync();
+                        var agent = fileContent.JsonGet<AgentExportModel>();
+                        if (agent != null)
                             agentExportModels.Add(agent);
+                        else
+                            content.Add(entry.Name, fileContent);
                     }
+                }
+            }
+        }
+        foreach (var agentExportModel in agentExportModels)
+        {
+            foreach (var agentExportModelContent in agentExportModel.Content)
+            {
+                if (!string.IsNullOrEmpty(agentExportModelContent.Value.Extension) && content.ContainsKey(agentExportModelContent.Value.Value))
+                {
+                    agentExportModelContent.Value.Value = content[agentExportModelContent.Value.Value];
                 }
             }
         }

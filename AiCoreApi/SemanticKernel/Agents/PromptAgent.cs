@@ -65,7 +65,7 @@ namespace AiCoreApi.SemanticKernel.Agents
 
             var connections = await _connectionProcessor.List();
             var llmConnection = GetConnection(_requestAccessor, _responseAccessor, connections, 
-                new[] { ConnectionType.AzureOpenAiLlm, ConnectionType.OpenAiLlm, ConnectionType.CohereLlm }, DebugMessageSenderName, agent.LlmType);
+                new[] { ConnectionType.AzureOpenAiLlm, ConnectionType.OpenAiLlm, ConnectionType.CohereLlm, ConnectionType.AzureOpenAiLlmCarousel }, DebugMessageSenderName, agent.LlmType);
 
             var kernel = _semanticKernelProvider.GetKernel(llmConnection);
             var chat = kernel.GetRequiredService<IChatCompletionService>();
