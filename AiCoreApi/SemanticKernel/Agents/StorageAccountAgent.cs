@@ -50,7 +50,7 @@ namespace AiCoreApi.SemanticKernel.Agents
 
             var action = agent.Content[AgentContentParameters.Action].Value;
             var connectionName = agent.Content[AgentContentParameters.ConnectionName].Value;
-            var containerName = agent.Content[AgentContentParameters.ContainerName].Value;
+            var containerName = ApplyParameters(agent.Content.ContainsKey(AgentContentParameters.ContainerName) ? agent.Content[AgentContentParameters.ContainerName].Value : string.Empty, parameters);
             var fileName = ApplyParameters(agent.Content.ContainsKey(AgentContentParameters.FileName) ? agent.Content[AgentContentParameters.FileName].Value : string.Empty, parameters);
             _responseAccessor.AddDebugMessage(DebugMessageSenderName, "DoCall Request", $"Action: {action}\r\nConnection: {connectionName}\r\nContainerName: {containerName}\r\nFileName: {fileName}");
 
@@ -67,31 +67,36 @@ namespace AiCoreApi.SemanticKernel.Agents
             switch (action)
             {
                 case ("LIST"):
-                {                 
-                    result = await List(blobServiceClient, containerName, fileName);
-                    break;
-                }
-                case ("ADD"):
-                {
-                    var base64Content = ApplyParameters(agent.Content[AgentContentParameters.Base64Content].Value, parameters);
-                    if (_requestAccessor.MessageDialog != null && _requestAccessor.MessageDialog.Messages!.Last().HasFiles())
                     {
-                        base64Content = ApplyParameters(base64Content, new Dictionary<string, string> {
+                        result = await ListContent(blobServiceClient, containerName, fileName);
+                        break;
+                    }
+                case ("CONTAINERS"):
+                    {
+                        result = await ListContainers(blobServiceClient);
+                        break;
+                    }
+                case ("ADD"):
+                    {
+                        var base64Content = ApplyParameters(agent.Content[AgentContentParameters.Base64Content].Value, parameters);
+                        if (_requestAccessor.MessageDialog != null && _requestAccessor.MessageDialog.Messages!.Last().HasFiles())
+                        {
+                            base64Content = ApplyParameters(base64Content, new Dictionary<string, string> {
                             { AgentPromptPlaceholders.FileDataPlaceholder, _requestAccessor.MessageDialog.Messages!.Last().Files!.First().Base64Data } });
-                    } 
-                    result = await Add(blobServiceClient, containerName, fileName, base64Content.StripBase64());
-                    break;
-                }
+                        }
+                        result = await Add(blobServiceClient, containerName, fileName, base64Content.StripBase64());
+                        break;
+                    }
                 case ("DELETE"):
-                {
-                    result = await Delete(blobServiceClient, containerName, fileName);
-                    break;
-                }
+                    {
+                        result = await Delete(blobServiceClient, containerName, fileName);
+                        break;
+                    }
                 case ("GET"):
-                {
-                    result = await Get(blobServiceClient, containerName, fileName);
-                    break;
-                }
+                    {
+                        result = await Get(blobServiceClient, containerName, fileName);
+                        break;
+                    }
                 default: throw new InvalidDataException($"Wrong action: {action}");
             }
             _responseAccessor.AddDebugMessage(DebugMessageSenderName, "DoCall Response", result);
@@ -101,7 +106,17 @@ namespace AiCoreApi.SemanticKernel.Agents
             return result;
         }
 
-        private async Task<string> List(BlobServiceClient blobServiceClient, string containerName, string prefix = null)
+        private async Task<string> ListContainers(BlobServiceClient blobServiceClient)
+        {
+            var containers = new List<object>();
+            await foreach (var containerItem in blobServiceClient.GetBlobContainersAsync())
+            {
+                containers.Add(new { Name = containerItem.Name });
+            }
+            return containers.ToJson();
+        }
+
+        private async Task<string> ListContent(BlobServiceClient blobServiceClient, string containerName, string prefix = null)
         {
             var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
             var blobs = containerClient.GetBlobs(prefix: prefix);
