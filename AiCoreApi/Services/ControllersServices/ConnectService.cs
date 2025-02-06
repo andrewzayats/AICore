@@ -97,13 +97,13 @@ namespace AiCoreApi.Services.ControllersServices
                 // Get all attached groups
 
                 var groups = clientSsoList.SelectMany(e => e.Groups).DistinctBy(e => e.GroupId).ToList();
-
+                var autoAdmin = clientSsoList.Any(sso => sso.Settings.ContainsKey(MicrosoftSso.Parameters.AutoAdmin) && sso.Settings[MicrosoftSso.Parameters.AutoAdmin] == "True");
                 login = await _loginProcessor.Add(new LoginModel
                 {
                     Login = extendedTokenModel.Email,
                     Email = extendedTokenModel.Email,
                     FullName = extendedTokenModel.Name,
-                    Role = RoleEnum.User,
+                    Role = autoAdmin ? RoleEnum.Admin : RoleEnum.User,
                     LoginType = LoginTypeEnum.SsoMicrosoft,
                     IsEnabled = true,
                     Created = DateTime.UtcNow,
