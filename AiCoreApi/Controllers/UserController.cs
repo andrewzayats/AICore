@@ -64,6 +64,7 @@ namespace AiCoreApi.Controllers
             if (currentUser == null) return Unauthorized();
 
             loginSummaryViewModel.CreatedBy = currentUser;
+
             var model = await _userService.Add(loginSummaryViewModel);
             return Ok(model != null);
         }
@@ -78,6 +79,18 @@ namespace AiCoreApi.Controllers
             var saved = await _userService.Update(loginId, editLoginViewModel);
 
             return Ok(saved);
+        }
+
+        [AdminAuthorize]
+        [HttpDelete("{loginId}")]
+        public async Task<IActionResult> DeleteUser(int loginId)
+        {
+            var currentUser = this.GetLogin();
+            if (currentUser == null) return Unauthorized();
+
+            var removed = await _userService.Delete(loginId);
+
+            return Ok(removed);
         }
 
         [Authorize]

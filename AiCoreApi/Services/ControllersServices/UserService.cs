@@ -74,6 +74,15 @@ namespace AiCoreApi.Services.ControllersServices
             return true;
         }
 
+        public async Task<bool?> Delete(int loginId)
+        {
+            var login = await _loginProcessor.GetById(loginId);
+            if (login == null)
+                return null;
+            await _loginProcessor.Delete(loginId);
+            return true;
+        }
+
         public async Task<bool> ChangePassword(string login, ChangePasswordViewModel changePasswordViewModel)
         {
             var loginModel = await _loginProcessor.GetByLogin(login, LoginTypeEnum.Password);
@@ -93,6 +102,7 @@ namespace AiCoreApi.Services.ControllersServices
         Task EnabledChange(int loginId, bool isEnabled);
         Task<LoginSummaryViewModel?> Add(LoginSummaryViewModel loginSummaryViewModel);
         Task<bool> Update(int loginId, EditLoginViewModel editLoginViewModel);
+        Task<bool?> Delete(int loginId);
         Task<bool> ChangePassword(string login, ChangePasswordViewModel changePasswordViewModel);
     }
 }
