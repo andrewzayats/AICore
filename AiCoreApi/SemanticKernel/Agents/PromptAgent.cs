@@ -64,7 +64,7 @@ namespace AiCoreApi.SemanticKernel.Agents
             _responseAccessor.AddDebugMessage(DebugMessageSenderName, "DoCall Request", templateText);
 
             var outputType = agent.Content.ContainsKey(AgentContentParameters.OutputType) ? agent.Content[AgentContentParameters.OutputType].Value : string.Empty;
-            var jsonSchema = agent.Content.ContainsKey(AgentContentParameters.JsonSchema) ? agent.Content[AgentContentParameters.JsonSchema].Value : string.Empty;
+            var jsonSchema = agent.Content.ContainsKey(AgentContentParameters.JsonSchema) ? ApplyParameters(agent.Content[AgentContentParameters.JsonSchema].Value, parameters) : string.Empty;
             var systemMessage = agent.Content.ContainsKey(AgentContentParameters.SystemMessage) ? agent.Content[AgentContentParameters.SystemMessage].Value : string.Empty;
             var temperature = agent.Content.ContainsKey(AgentContentParameters.Temperature) ? Convert.ToDouble(agent.Content[AgentContentParameters.Temperature].Value) : 0;
 
