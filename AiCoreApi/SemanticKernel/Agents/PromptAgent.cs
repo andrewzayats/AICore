@@ -5,6 +5,7 @@ using AiCoreApi.Common;
 using AiCoreApi.Data.Processors;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
+using OpenAI.Chat;
 
 namespace AiCoreApi.SemanticKernel.Agents
 {
@@ -21,6 +22,8 @@ namespace AiCoreApi.SemanticKernel.Agents
         private static class AgentContentParameters
         {
             public const string Prompt = "prompt";
+            public const string OutputType = "outputType";
+            public const string JsonSchema = "jsonSchema";
             public const string SystemMessage = "systemMessage";
             public const string Temperature = "temperature";
         }
@@ -60,6 +63,8 @@ namespace AiCoreApi.SemanticKernel.Agents
             });
             _responseAccessor.AddDebugMessage(DebugMessageSenderName, "DoCall Request", templateText);
 
+            var outputType = agent.Content.ContainsKey(AgentContentParameters.OutputType) ? agent.Content[AgentContentParameters.OutputType].Value : string.Empty;
+            var jsonSchema = agent.Content.ContainsKey(AgentContentParameters.JsonSchema) ? agent.Content[AgentContentParameters.JsonSchema].Value : string.Empty;
             var systemMessage = agent.Content.ContainsKey(AgentContentParameters.SystemMessage) ? agent.Content[AgentContentParameters.SystemMessage].Value : string.Empty;
             var temperature = agent.Content.ContainsKey(AgentContentParameters.Temperature) ? Convert.ToDouble(agent.Content[AgentContentParameters.Temperature].Value) : 0;
 
@@ -81,6 +86,16 @@ namespace AiCoreApi.SemanticKernel.Agents
             {
                 Temperature = temperature,
             };
+
+
+            if (outputType == "json")
+            {
+                var chatResponseFormat = ChatResponseFormat.CreateJsonSchemaFormat(
+                    jsonSchemaFormatName: "prompt_result",
+                    jsonSchema: BinaryData.FromString(jsonSchema),
+                    jsonSchemaIsStrict: true);
+                executionSettings.ResponseFormat = chatResponseFormat;
+            }
             var resultContent = await chat.GetChatMessageContentAsync(history, executionSettings);
             var result = resultContent.Content ?? "";
             _responseAccessor.AddDebugMessage(DebugMessageSenderName, "DoCall Response", result);

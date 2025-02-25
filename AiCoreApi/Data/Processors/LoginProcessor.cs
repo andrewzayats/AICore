@@ -134,6 +134,14 @@ namespace AiCoreApi.Data.Processors
             await _db.SaveChangesAsync();
         }
 
+        public async Task Delete(int id)
+        {
+            var login = await _db.Login.FirstOrDefaultAsync(item => item.LoginId == id);
+            if (login == null) return;
+            _db.Login.Remove(login);
+            await _db.SaveChangesAsync();
+        }
+
         public async Task<LoginModel> Add(LoginModel loginModel)
         {
             var existingLogin = await _db.Login
@@ -174,6 +182,7 @@ namespace AiCoreApi.Data.Processors
         Task<LoginModel?> GetByLogin(string login, LoginTypeEnum loginType);
         Task<List<TagModel>> GetTagsByLogin(string login, LoginTypeEnum loginType);
         Task Update(LoginModel login);
+        Task Delete(int id);
         Task<LoginModel> Add(LoginModel login);
     }
 }

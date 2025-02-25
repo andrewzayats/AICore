@@ -20,7 +20,8 @@ public class ConnectionsController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize]
+    [CombinedAuthorize]
+    [AdminAuthorize]
     public async Task<IActionResult> ConnectionsList()
     {
         var currentUser = this.GetLogin();
@@ -35,6 +36,7 @@ public class ConnectionsController : ControllerBase
     }
 
     [HttpPost]
+    [CombinedAuthorize]
     [AdminAuthorize]
     public async Task<IActionResult> ConnectionsAdd([FromBody] ConnectionViewModel connectionViewModel)
     {
@@ -54,6 +56,7 @@ public class ConnectionsController : ControllerBase
     }
 
     [HttpDelete("{connectionId}")]
+    [CombinedAuthorize]
     [AdminAuthorize]
     public async Task<IActionResult> ConnectionsDelete(int connectionId)
     {
