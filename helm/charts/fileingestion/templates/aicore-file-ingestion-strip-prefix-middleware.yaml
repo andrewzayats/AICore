@@ -1,0 +1,9 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  namespace: {{ .Values.global.environment.namespace }}
+  name: "{{ .Values.global.environment.name }}-aicore-file-ingestion-strip-prefix-middleware"
+spec:
+  stripPrefix:
+    prefixes:
+    - /{{ .Values.global.ingestion.service.urlPrefix }}

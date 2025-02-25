@@ -1,0 +1,14 @@
+{{- if eq .Values.postgres.internal "True" }}
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: "{{ .Values.global.environment.namespace }}"
+  name: "{{ .Values.global.environment.name }}-aicore-postgres-loadbalancer"
+spec:
+  selector:
+    app: "{{ .Values.global.environment.name }}-aicore-postgres"
+  type: {{ .Values.loadbalancertype }}
+  ports:
+    - port: {{ .Values.postgres.port }}
+      targetPort: {{ .Values.postgres.port }}
+{{- end }}

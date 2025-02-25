@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ .Values.global.environment.namespace }}
+  name: "{{ .Values.global.environment.name }}-aicore-redis-config"
+data:
+  REDIS_USERNAME: "{{ .Values.redis.userName }}"
+  REDIS_PASSWORD: "{{ .Values.redis.password }}"

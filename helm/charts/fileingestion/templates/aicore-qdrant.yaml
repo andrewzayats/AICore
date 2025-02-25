@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  namespace: {{ .Values.global.environment.namespace }}
+  name: "{{ .Values.global.environment.name }}-aicore-qdrant"
+  labels:
+    app: "{{ .Values.global.app.name }}"
+    env: "{{ .Values.global.environment.namespace }}"
+    build: "{{ .Values.global.app.build }}"
+spec:
+  selector:
+    matchLabels:
+      app: "{{ .Values.global.environment.name }}-aicore-qdrant"
+  serviceName: "{{ .Values.global.environment.name }}-aicore-qdrant"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: "{{ .Values.global.environment.name }}-aicore-qdrant"
+    spec:
+      containers:
+        - name: "{{ .Values.global.environment.name }}-aicore-qdrant"
+          image: "qdrant/qdrant:v1.7.4"
+          imagePullPolicy: "IfNotPresent"
+          ports:
+            - containerPort: {{ .Values.qdrant.containerPort }}
+          volumeMounts:
+            - mountPath: /qdrant_data
+              name: "{{ .Values.global.environment.name }}-aicore-qdrant-disk"
+  volumeClaimTemplates:
+    - metadata:
+        name: "{{ .Values.global.environment.name }}-aicore-qdrant-disk"
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: "managed-csi"
+        resources:
+          requests:
+            storage: "5Gi"

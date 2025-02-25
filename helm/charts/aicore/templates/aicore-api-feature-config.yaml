@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ .Values.global.environment.namespace }}
+  name: "{{ .Values.global.environment.name }}-aicore-api-feature-config"
+  labels:
+    app: "{{ .Values.global.app.name }}"
+    env: "{{ .Values.global.environment.namespace }}"
+    build: "{{ .Values.global.app.build }}"
+data:
+  FEATURE_DEMOMODE: "{{ .Values.featureFlags.demoMode }}"
+  FEATURE_TAGGING: "{{ .Values.featureFlags.tagging }}"
+  FEATURE_SETTINGS: "{{ .Values.featureFlags.settings }}"
+  FEATURE_SPENTMANAGEMENT: "{{ .Values.featureFlags.spentManagement }}"
+  FEATURE_SPEECHTOTEXT: "{{ .Values.featureFlags.speechToText }}"

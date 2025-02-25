@@ -1,0 +1,32 @@
+global:
+  app:
+    name: aicore
+    build: 3
+    domain: ""
+    logLevel: Information
+    enableMonitoring: "False"
+  containerRegistry:
+    dockerConfig: ""
+    name: docker.io/viacode
+    imagePullPolicy: Always
+  environment:
+    namespace: aicore-ns
+    name: myapp
+  aicore:
+    service:
+      tag: "latest"
+      port: 8005
+  ingestion:
+    maxParallelism: 2
+    requestTimeout: "00:15:00"
+    service:
+      tag: "latest"
+      urlPrefix: "ingestion-api"
+      port: 8021
+    qdrant:
+      port: 8016      
+tls:
+  crt: "crt"
+  key: "key"
+fileIngestion:
+  enabled: false
