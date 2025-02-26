@@ -1,6 +1,7 @@
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Newtonsoft.Json;
+using System.Reflection;
 
 namespace AiCoreApi.SemanticKernel;
 
@@ -40,16 +41,53 @@ public sealed class DeepSeekChatCompletionService : IChatCompletionService
         Kernel? kernel = null,
         CancellationToken cancellationToken = default)
     {
+        DeepSeekResponseFormat? outputFormat = null;
+        var messages = chatHistory.Select(ch =>
+            new DeepSeekMessage
+            {
+                Role = ch.Role.Label.ToLower(),
+                Content = ch.Content ?? ""
+            }).ToList();
+        if (executionSettings is Microsoft.SemanticKernel.Connectors.OpenAI.OpenAIPromptExecutionSettings _openAIPromptExecutionSettings 
+            && _openAIPromptExecutionSettings.ResponseFormat != null)
+        {
+            var responseFormat = _openAIPromptExecutionSettings.ResponseFormat;
+            var jsonSchemaProperty = responseFormat.GetType().GetProperty("JsonSchema", BindingFlags.Public | BindingFlags.Instance);
+            if (jsonSchemaProperty != null)
+            {
+                var jsonSchema = jsonSchemaProperty.GetValue(responseFormat);
+                if (jsonSchema != null)
+                {
+                    var schemaProperty = jsonSchema.GetType().GetProperty("Schema", BindingFlags.Public | BindingFlags.Instance);
+                    if (schemaProperty != null)
+                    {
+                        var schema = schemaProperty.GetValue(jsonSchema);
+                        if (schema != null)
+                        {
+                            var schemaText = schema.ToString();
+                            if (!string.IsNullOrEmpty(schemaText))
+                            {
+                                var jsonObjectContent = schemaText.Contains("\"type\": \"object\"")
+                                    ? $"JSON OUTPUT SCHEMA: {schemaText}"
+                                    : $"JSON OUTPUT SAMPLE: {schemaText}";
+                                outputFormat = new DeepSeekResponseFormat { Type = "json_object" };
+                                messages.Insert(0, new DeepSeekMessage
+                                {
+                                    Role = "system",
+                                    Content = jsonObjectContent
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
         var message = new DeepSeekRequestMessage
         {
             Temperature = _temperature,
-            Messages = chatHistory.Select(ch =>
-                new DeepSeekMessage
-                {
-                    Role = ch.Role.Label.ToLower(),
-                    Content = ch.Content ?? ""
-                }).ToList(),
+            Messages = messages,
             Model = _modelName,
+            ResponseFormat = outputFormat,
             Stream = false
         };
 
@@ -89,8 +127,16 @@ public sealed class DeepSeekChatCompletionService : IChatCompletionService
         public List<DeepSeekMessage> Messages { get; set; } = new();
         [JsonProperty("model")]
         public string Model { get; set; } = "deepseek-chat";
+        [JsonProperty("response_format", NullValueHandling = NullValueHandling.Ignore)]
+        public DeepSeekResponseFormat? ResponseFormat { get; set; }
         [JsonProperty("stream")]
         public bool Stream { get; set; }
+    }
+
+    public class DeepSeekResponseFormat
+    {
+        [JsonProperty("type", NullValueHandling = NullValueHandling.Ignore)]
+        public string? Type { get; set; }
     }
 
     public class DeepSeekMessage
