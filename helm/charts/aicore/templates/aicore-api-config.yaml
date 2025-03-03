@@ -46,7 +46,7 @@ data:
   {{ if .Values.aicore.auth.securityKey }}
   AUTHSECURITYKEY: "{{ .Values.aicore.auth.securityKey }}"
   {{ else }}
-  AUTHSECURITYKEY: {{ randAlphaNum 30 }}
+  AUTHSECURITYKEY: {{ randAlphaNum 32 }}
   {{ end }}
 
   TOKENEXPIRATIONTIMEMINUTES: "{{ .Values.aicore.auth.tokenExpirationMinutes }}"
