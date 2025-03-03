@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: "{{ .Values.global.environment.namespace }}"
+  name: "{{ .Values.global.environment.name }}-aicore-api-ip"
+spec:
+  selector:
+    app: "{{ .Values.global.environment.name }}-aicore-api"
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.global.aicore.service.port }}
+      targetPort: {{ .Values.aicore.containerPort }}

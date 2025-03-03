@@ -1,0 +1,5 @@
+loadBalancerType: ClusterIP
+service:
+  containerPort: 7880
+qdrant:
+  containerPort: 6333

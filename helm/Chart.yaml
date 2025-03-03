@@ -1,0 +1,13 @@
+apiVersion: v2
+description: VIAcode AI Core Service, helm chart to deploy in Kubernetes.
+type: application
+name: aicore
+version: 1.0.0
+appVersion: 1.0.0
+kubeVersion: ">=1.16.0-0"
+dependencies:
+  - name: api
+    version: 1.0.0
+  - name: fileIngestion
+    version: 1.0.0
+    condition: fileIngestion.enabled

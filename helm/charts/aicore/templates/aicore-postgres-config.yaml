@@ -1,0 +1,10 @@
+{{- if eq .Values.postgres.internal "True" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ .Values.global.environment.namespace }}
+  name: "{{ .Values.global.environment.name }}-aicore-postgres-config"
+data:
+  POSTGRES_DB: "{{ .Values.postgres.dbName }}"
+  PGDATA: "/data/postgres"
+{{- end }}

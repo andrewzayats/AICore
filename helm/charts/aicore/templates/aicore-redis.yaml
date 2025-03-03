@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Values.global.environment.namespace }}
+  name: "{{ .Values.global.environment.name }}-aicore-redis"
+spec:
+  selector:
+    matchLabels:
+      app: "{{ .Values.global.environment.name }}-aicore-redis"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: "{{ .Values.global.environment.name }}-aicore-redis"
+    spec:
+      containers:
+        - name: "{{ .Values.global.environment.name }}-aicore-redis"
+          image: redis:7.4.2
+          args: ["redis-server", "--requirepass", "{{ .Values.redis.password }}"]
+          imagePullPolicy: "IfNotPresent"
+          ports:
+            - containerPort: {{ .Values.redis.port }}

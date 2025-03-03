@@ -1,0 +1,12 @@
+kind: Secret
+apiVersion: v1
+metadata:
+  namespace: {{ .Values.global.environment.namespace }}
+  name: "{{ .Values.global.environment.name }}-aicore-ingress-tls"
+data:
+  tls.crt: >-
+    {{ .Values.tls.crt }}
+  tls.key: >-
+    {{ .Values.tls.key }}
+
+type: kubernetes.io/tls

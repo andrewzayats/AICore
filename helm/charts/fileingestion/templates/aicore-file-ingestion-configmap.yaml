@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ .Values.global.environment.namespace }}
+  name: "{{ .Values.global.environment.name }}-aicore-file-ingestion-configmap"
+  labels:
+    app: "{{ .Values.global.app.name }}"
+    env: "{{ .Values.global.environment.namespace }}"
+    build: "{{ .Values.global.app.build }}"
+data:
+  ASPNETCORE_URLS: "http://+:{{ .Values.service.containerPort }}"
+  Logging__LogLevel__Default: "{{ .Values.global.app.logLevel }}"
+
+  Service__IngestionTimeout: "{{ .Values.global.ingestion.requestTimeout }}"
+  KernelMemory__Services__Qdrant__Endpoint: "http://{{ .Values.global.environment.name }}-aicore-qdrant-loadbalancer:{{ .Values.global.ingestion.qdrant.port }}"

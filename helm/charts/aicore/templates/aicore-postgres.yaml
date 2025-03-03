@@ -1,0 +1,50 @@
+{{- if eq .Values.postgres.internal "True" }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  namespace: {{ .Values.global.environment.namespace }}
+  name: "{{ .Values.global.environment.name }}-aicore-postgres"
+spec:
+  selector:
+    matchLabels:
+      app: "{{ .Values.global.environment.name }}-aicore-postgres"
+  serviceName: "{{ .Values.global.environment.name }}-aicore-postgres"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: "{{ .Values.global.environment.name }}-aicore-postgres"
+    spec:
+      containers:
+        - name: "{{ .Values.global.environment.name }}-aicore-postgres"
+          image: postgres:16.1
+          imagePullPolicy: "IfNotPresent"
+          ports:
+            - containerPort: {{ .Values.postgres.port }}
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.global.environment.name }}-aicore-postgres-secret"
+                  key: userName
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.global.environment.name }}-aicore-postgres-secret"
+                  key: password
+          envFrom:
+            - configMapRef:
+                name: "{{ .Values.global.environment.name }}-aicore-postgres-config"
+          volumeMounts:
+            - mountPath: "/data"
+              name: "{{ .Values.global.environment.name }}-aicore-postgres-disk"              
+  volumeClaimTemplates:
+    - metadata:
+        name: "{{ .Values.global.environment.name }}-aicore-postgres-disk"
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: "managed-csi"
+        resources:
+          requests:
+            storage: "{{ .Values.postgres.storageSize }}"
+{{- end }}
