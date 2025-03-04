@@ -16,7 +16,7 @@ spec:
       containers:
         - name: "{{ .Values.global.environment.name }}-aicore-redis"
           image: redis:7.4.2
-          args: ["redis-server", "--requirepass", "{{ .Values.redis.password }}"]
+          args: ["redis-server", "--requirepass", "{{ .Values.redis.password }}", "--save", "", "--appendonly", "no", "--loglevel", "warning"]
           imagePullPolicy: "IfNotPresent"
           ports:
             - containerPort: {{ .Values.redis.port }}
