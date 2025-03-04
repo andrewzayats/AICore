@@ -9,7 +9,7 @@
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <DockerfileContext>.</DockerfileContext>
     <DockerComposeProjectPath>..\docker-compose.dcproj</DockerComposeProjectPath>
-    <NoWarn>$(NoWarn);SKEXP0010;KMEXP00;KMEXP01;KMEXP03;SKEXP0060</NoWarn>
+    <NoWarn>$(NoWarn);SKEXP0001;SKEXP0010;KMEXP00;KMEXP01;KMEXP03;SKEXP0060</NoWarn>
     <LangVersion>preview</LangVersion>
   </PropertyGroup>
 

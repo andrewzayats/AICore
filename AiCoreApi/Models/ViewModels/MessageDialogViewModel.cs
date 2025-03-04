@@ -35,6 +35,7 @@ namespace AiCoreApi.Models.ViewModels
             public enum CallOptionsType
             {
                 AgentCall = 1,
+                ClientHandle = 2,
             }
         }
 

@@ -59,6 +59,7 @@ namespace AiCoreApi.Models.DbModels
         AzureServiceBusNotification = 26,
         AzureServiceBusListener = 27,
         RabbitMqNotification = 28,
-        RabbitMqListener = 29,
+        RabbitMqListener = 29, 
+        AudioPromptAgent = 30,
     }
 }
