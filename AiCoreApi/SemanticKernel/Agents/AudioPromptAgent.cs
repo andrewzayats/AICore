@@ -131,7 +131,6 @@ namespace AiCoreApi.SemanticKernel.Agents
                 });
             }
             var modalitiesArray = ParseModalities(modalities);
-            // Build the JSON payload that Azure Chat GPT (with audio) expects. This matches your sample input structure
             var requestBody = new
             {
                 messages = new object[]

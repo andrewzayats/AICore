@@ -12,7 +12,6 @@ namespace AiCoreApi.Services.ProcessingServices.AgentsHandlers
         private readonly ISchedulerAgentTaskProcessor _schedulerAgentTaskProcessor;
         private readonly IAgentsProcessor _agentsProcessor; 
         private readonly IServiceProvider _serviceProvider; 
-        protected readonly IServiceProvider ServiceProvider;
 
         public BackgroundWorkerAgentService(
             ISchedulerAgentTaskProcessor schedulerAgentTaskProcessor,
@@ -22,7 +21,6 @@ namespace AiCoreApi.Services.ProcessingServices.AgentsHandlers
             _schedulerAgentTaskProcessor = schedulerAgentTaskProcessor;
             _agentsProcessor = agentsProcessor;
             _serviceProvider = serviceProvider;
-            ServiceProvider = serviceProvider;
         }
 
 
