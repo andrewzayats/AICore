@@ -1,25 +1,34 @@
 using AiCoreApi.Common;
 using AiCoreApi.Data.Processors;
 using AiCoreApi.Models.DbModels;
+using AiCoreApi.Models.ViewModels;
 using AiCoreApi.SemanticKernel.Agents;
+using AgentType = AiCoreApi.Models.DbModels.AgentType;
 
 namespace AiCoreApi.Services.ProcessingServices.AgentsHandlers
 {
     public class AgentServiceBase
     {
         private readonly ILoginProcessor _loginProcessor;
+        private readonly IDebugLogProcessor _debugLogProcessor;
+        private readonly ExtendedConfig _extendedConfig;
         protected readonly IServiceProvider ServiceProvider;
 
         public AgentServiceBase(
             ILoginProcessor loginProcessor,
+            IDebugLogProcessor debugLogProcessor,
+            ExtendedConfig extendedConfig,
             IServiceProvider serviceProvider)
         {
             _loginProcessor = loginProcessor;
+            _debugLogProcessor = debugLogProcessor;
+            _extendedConfig = extendedConfig;
             ServiceProvider = serviceProvider;
         }
 
         public async Task RunAgent(string sender, List<AgentModel> allAgents, AgentModel handlerAgent, string agentToCallName, int runAs, Dictionary<string, string> parametersValues)
         {
+
             var agentToCallModel = allAgents.FirstOrDefault(item => item.Name.ToLower() == agentToCallName.ToLower());
             if (agentToCallModel == null)
             {
@@ -44,9 +53,9 @@ namespace AiCoreApi.Services.ProcessingServices.AgentsHandlers
                 {
                     var userContextAccessor = scope.ServiceProvider.GetRequiredService<UserContextAccessor>();
                     var requestAccessor = scope.ServiceProvider.GetRequiredService<RequestAccessor>();
-                    requestAccessor.MessageDialog = new Models.ViewModels.MessageDialogViewModel
+                    requestAccessor.MessageDialog = new MessageDialogViewModel
                     {
-                        Messages = new List<Models.ViewModels.MessageDialogViewModel.Message>
+                        Messages = new List<MessageDialogViewModel.Message>
                         {
                             new()
                             {
@@ -59,6 +68,10 @@ namespace AiCoreApi.Services.ProcessingServices.AgentsHandlers
                     requestAccessor.Login = runAsUser.Login;
                     requestAccessor.LoginTypeString = runAsUser.LoginType.ToString();
                     requestAccessor.TagsString = string.Join(",", runAsUser.Tags.Select(tag => tag.TagId));
+                    if (_extendedConfig.AllowDebugMode && _extendedConfig.DebugMessagesStorageEnabled)
+                    {
+                        requestAccessor.UseDebug = true;
+                    }
                     userContextAccessor.SetLoginId(runAs);
                     UserContextAccessor.AsyncScheduledLoginId.Value = runAs;
                     var result = "";
@@ -76,6 +89,27 @@ namespace AiCoreApi.Services.ProcessingServices.AgentsHandlers
                     {
                         var pythonCodeAgent = scope.ServiceProvider.GetRequiredService<IPythonCodeAgent>();
                         result = await pythonCodeAgent.DoCall(agentToCallModel, parametersValues);
+                    }
+
+                    if (_extendedConfig.AllowDebugMode && _extendedConfig.DebugMessagesStorageEnabled)
+                    {
+                        var parametersString = string.Join(Environment.NewLine, parametersValues.Select(x => $" - {x.Key}: {x.Value}"));
+                        var responseAccessor = scope.ServiceProvider.GetRequiredService<ResponseAccessor>();
+                        await _debugLogProcessor.Add(
+                            runAsUser.Login,
+                            $"Agent ({sender}): {agentToCallModel.Name}{Environment.NewLine}Parameters:{Environment.NewLine}{parametersString}",
+                            new MessageDialogViewModel
+                            {
+                                Messages = new List<MessageDialogViewModel.Message>
+                                {
+                                    new()
+                                    {
+                                        Text = result,
+                                        SpentTokens = responseAccessor.CurrentMessage.SpentTokens,
+                                        DebugMessages = responseAccessor.CurrentMessage.DebugMessages
+                                    }
+                                }
+                            });
                     }
                     return result;
                 }

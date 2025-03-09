@@ -86,12 +86,6 @@ public class ExtendedConfig
     public bool UseInternalUsers => GetValue<bool>("UseInternalUsers");
 
     [Category(CategoryAttribute.ConfigCategoryEnum.Common)]
-    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Boolean)]
-    [Description("Allow Debug Mode")]
-    [Tooltip("Specifies if Debug Mode is allowed. When enabled, the Debug Mode enabler becomes available in the Chat window. Debug Mode allows you to see the raw response from the AI model.")]
-    public bool AllowDebugMode => GetValue<bool>("AllowDebugMode", false);
-
-    [Category(CategoryAttribute.ConfigCategoryEnum.Common)]
     [Description("Planner prompt")]
     [Tooltip("The Planner prompt serves as a template for the root Planner, providing it with instructions for LLM on how to generate a plan of action for the Agents to accomplish the desired outcome. This prompt can incorporate various placeholders: {{currentQuestion}}: The last message exchanged in the Chat dialog. {{pluginsInstructions}}: A combined text derived from the Plugins Instructions sections of all Agents. {{hasFiles}}: A boolean value indicating whether any files were attached to the last message. {{filesNames}}: A list containing the names of all files attached to the last message. {{filesData}}: The parsed text content of all files attached to the last message. It's important to note that not all placeholders may be necessary for every Planner prompt.")]
     public string PlannerPrompt => GetValue<string>("PlannerPrompt", PlannerHelpers.PlannerPromptPlaceholders.PluginsInstructionsPlaceholder);
@@ -261,6 +255,48 @@ public class ExtendedConfig
     [Description("Set credentials for JIRA")]
     [Tooltip("Click here to set credentials for JIRA Connector.")]
     public string JiraAuthUrl => GetValue<string>("JiraAuthUrl");
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.Debug)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Boolean)]
+    [Description("Allow Debug Mode")]
+    [Tooltip("Specifies if Debug Mode is allowed. When enabled, the Debug Mode enabler becomes available in the Chat window. Debug Mode allows you to see the raw response from the AI model.")]
+    public bool AllowDebugMode => GetValue<bool>("AllowDebugMode", false);
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.Debug)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Int)]
+    [Description("Store Debug Messages for N days")]
+    [Tooltip("Debug Messages are stored in the system for a specified number of days. After this period, the Debug Messages are automatically deleted.")]
+    public int DebugMessagesStoreDays => GetValue<int>("DebugMessagesStoreDays", 30);
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.Debug)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Boolean)]
+    [Description("Debug Messages Storage Enabled")]
+    [Tooltip("When enabled, the system stores debug messages for a specified number of days.")]
+    public bool DebugMessagesStorageEnabled => GetValue<bool>("DebugMessagesStorageEnabled", false);
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.Nuget)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Boolean)]
+    [Description("Use Custom Nuget Feed")]
+    [Tooltip("Specifies if a custom Nuget feed is used. When enabled, the system uses a custom Nuget feed for package management.")]
+    public bool UseCustomNugetFeed => GetValue<bool>("UseCustomNugetFeed", false);
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.Nuget)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Boolean)]
+    [Description("Use Nuget.org when no package in Custom Nuget Feed")]
+    [Tooltip("Specifies if the system should use Nuget.org when a package is not found in the custom Nuget feed. When enabled, the system will use Nuget.org as a fallback.")]
+    public bool UseNugetOrgFallback => GetValue<bool>("UseNugetOrgFallback", false);
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.Nuget)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.String)]
+    [Description("Custom Nuget Feed URL")]
+    [Tooltip("The Custom Nuget Feed URL is used to specify the URL of the custom Nuget feed. This URL is used for package management.")]
+    public string CustomNugetFeedUrl => GetValue<string>("CustomNugetFeedUrl", "");
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.Nuget)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Password)]
+    [Description("Custom Nuget Feed API Key")]
+    [Tooltip("The Custom Nuget Feed API Key is used to authenticate the custom Nuget feed. This key is used for package management.")]
+    public string CustomNugetFeedApiKey => GetValue<string>("CustomNugetFeedApiKey", "");
 }
 
 [AttributeUsage(AttributeTargets.Property)]
@@ -336,5 +372,9 @@ public class CategoryAttribute : Attribute, IAttributeHandler
         Authentication,
         [System.ComponentModel.Description("JIRA Connector")]
         Jira,
+        [System.ComponentModel.Description("Debug")]
+        Debug,
+        [System.ComponentModel.Description("Nuget")]
+        Nuget,
     }
 }

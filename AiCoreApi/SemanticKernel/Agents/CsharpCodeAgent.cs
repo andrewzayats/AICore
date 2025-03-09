@@ -8,11 +8,11 @@ using NuGet.Protocol.Core.Types;
 using NuGet.Configuration;
 using NuGet.Common;
 using NuGet.Versioning;
+using NuGet.Packaging;
+using NuGet.Frameworks;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using NuGet.Packaging;
 using ILogger = NuGet.Common.ILogger;
-using NuGet.Frameworks;
 using System.Runtime.InteropServices;
 using System.Collections.Concurrent;
 using AiCoreApi.Common.Extensions;
@@ -37,17 +37,20 @@ namespace AiCoreApi.SemanticKernel.Agents
         private readonly IPlannerHelpers _plannerHelpers;
         private readonly RequestAccessor _requestAccessor;
         private readonly ResponseAccessor _responseAccessor;
+        private readonly ExtendedConfig _extendedConfig;
         private readonly ICacheAccessor _cacheAccessor;
 
         public CsharpCodeAgent(
             IPlannerHelpers plannerHelpers,
             RequestAccessor requestAccessor,
             ResponseAccessor responseAccessor,
+            ExtendedConfig extendedConfig,
             ICacheAccessor cacheAccessor)
         {
             _plannerHelpers = plannerHelpers;
             _requestAccessor = requestAccessor;
             _responseAccessor = responseAccessor;
+            _extendedConfig = extendedConfig;
             _cacheAccessor = cacheAccessor;
             _cacheAccessor.KeyPrefix = "AgentExecution-";
         }
@@ -56,9 +59,15 @@ namespace AiCoreApi.SemanticKernel.Agents
             AgentModel agent,
             Dictionary<string, string> parameters)
         {
-            parameters.ToList().ForEach(p => parameters[p.Key] = HttpUtility.HtmlDecode(p.Value));
+            // Ensure values are HTML-decoded
+            parameters
+                .ToList()
+                .ForEach(p => parameters[p.Key] = HttpUtility.HtmlDecode(p.Value));
 
+            // Insert user parameters into the code template
             var csharpCode = ApplyParameters(agent.Content[AgentContentParameters.CsharpCode].Value, parameters);
+
+            // If the code does not define "class Agent {...}", switch to quick mode
             var quickMode = !csharpCode.Replace(" ", "").Contains("classAgent");
 
             return quickMode
@@ -69,60 +78,67 @@ namespace AiCoreApi.SemanticKernel.Agents
         private async Task<string> Call(Dictionary<string, string> parameters, string csharpCode)
         {
             _responseAccessor.AddDebugMessage(DebugMessageSenderName, "Execute C# Code", csharpCode);
-            // Clean the script code by removing #r directives
-            var cleanedCode = Regex.Replace(csharpCode, @"#r\s+"".*""", "");
 
-            // Cache compiled scripts
+            // Clean the script code by removing #r "..." directives
+            var cleanedCode = Regex.Replace(csharpCode, @"#r\s+""nuget:[^""]+""", "");
+            cleanedCode = Regex.Replace(cleanedCode, @"#r\s+""[^""]+""", "");
+
+            // Unique ID for compiled code
             var scriptCacheKey = cleanedCode.GetHash().Replace("=", "").Replace("/", "");
             var dllPath = $"/app/{scriptCacheKey}.dll";
 
-            if (!File.Exists(dllPath) || new FileInfo(dllPath).Length == 0)
+            var nugetDirectives = ExtractNuGetDirectives(csharpCode);
+            var assemblyPathsCacheKey = nugetDirectives.ToJson()?.GetHash() ?? "default";
+            // If we haven't compiled a DLL for this code yet, do so
+            if (!File.Exists(dllPath) || new FileInfo(dllPath).Length == 0 || (assemblyPathsCacheKey != "default" && !_assemblyPaths.ContainsKey(assemblyPathsCacheKey)))
             {
-                // Extract and resolve NuGet packages
-                var nugetDirectives = ExtractNuGetDirectives(csharpCode);
-                var assemblyPathsJson = nugetDirectives.ToJson();
-                var assemblyPathsCacheKey = assemblyPathsJson?.GetHash() ?? "default";
+                // Extract and resolve any NuGet directives
+
+                // See if we've already loaded & cached the assembly paths
                 _assemblyPaths.TryGetValue(assemblyPathsCacheKey, out var assemblyPaths);
                 if (assemblyPaths == null)
                 {
                     assemblyPaths = await ResolveNuGetPackages(nugetDirectives);
                     _assemblyPaths.TryAdd(assemblyPathsCacheKey, assemblyPaths);
                 }
-                // Compile the script
+
+                // Compile the code into a DLL
                 var compiler = new DynamicCompiler();
-                compiler.CompileCodeToDll(cleanedCode, dllPath, assemblyPaths);
+                dllPath = compiler.CompileCodeToDll(cleanedCode, dllPath, assemblyPaths, scriptCacheKey);
             }
 
+            var references = _assemblyPaths.FirstOrDefault(x => x.Key == assemblyPathsCacheKey).Value;
             try
             {
                 _responseAccessor.AddDebugMessage(DebugMessageSenderName, "C# Code Execution", "");
-                // Execute the script
-                var executor = new DynamicAssemblyExecutor();
+
+                // Prepare delegate references for Agent calls
                 Func<string, List<string>?, string> executeAgent = ExecuteAgent;
                 Func<string, string> getCacheValue = _cacheAccessor.GetCacheValue;
                 Func<string, string, int, string> setCacheValue = _cacheAccessor.SetCacheValue;
 
-                // Dynamically get method info
+                // Dynamically load and execute the compiled assembly
+                var executor = new DynamicAssemblyExecutor();
                 var methodInfo = executor.GetMethodInfo(dllPath, "Agent", "Run");
 
                 if (methodInfo == null)
-                {
                     throw new InvalidOperationException("The 'Run' method could not be found.");
-                }
 
-                // Prepare arguments based on parameter count
+                // Based on how many parameters the Run(...) method expects
                 var methodParameters = methodInfo.GetParameters();
                 object?[] args;
 
-                if (methodParameters.Length == 4) // Only has base parameters
+                if (methodParameters.Length == 4)
                 {
+                    // (Dictionary<string,string>, RequestAccessor, ResponseAccessor, Func<string,List<string>?,string>)
                     args = new object?[]
                     {
                         parameters, _requestAccessor, _responseAccessor, executeAgent
                     };
                 }
-                else if (methodParameters.Length == 6) // Includes getCacheValue and setCacheValue
+                else if (methodParameters.Length == 6)
                 {
+                    // (Dictionary<string,string>, RequestAccessor, ResponseAccessor, Func<string,List<string>?,string>, Func<string,string>, Func<string,string,int,string>)
                     args = new object?[]
                     {
                         parameters, _requestAccessor, _responseAccessor, executeAgent, getCacheValue, setCacheValue
@@ -132,21 +148,27 @@ namespace AiCoreApi.SemanticKernel.Agents
                 {
                     throw new InvalidOperationException("The 'Run' method has an unsupported parameter count.");
                 }
-                var result = executor.Execute(dllPath, "Agent", "Run", args)?.ToString();
+
+                var result = executor.Execute(dllPath, "Agent", "Run", args, references)?.ToString();
                 _responseAccessor.AddDebugMessage(DebugMessageSenderName, "C# Code Result", result);
                 return result;
             }
             catch (Exception e)
             {
-                _responseAccessor.AddDebugMessage(DebugMessageSenderName, "C# Code Error", $"Exception: {e.Message}\r\n\r\nInner Exception: {e.InnerException?.Message}");
+                _responseAccessor.AddDebugMessage(
+                    DebugMessageSenderName,
+                    "C# Code Error",
+                    $"Exception: {e.Message}\r\n\r\nInner Exception: {e.InnerException?.Message}"
+                );
                 throw;
             }
         }
 
-        // Quick mode for C# code execution. Fast execution, but keep in memory all loaded assemblies permanently.
+        // Quick mode – interpret the snippet directly with Roslyn's C# scripting
         private async Task<string> QuickCall(Dictionary<string, string> parameters, string csharpCode)
         {
             _responseAccessor.AddDebugMessage(DebugMessageSenderName, "Execute C# Code (quick)", csharpCode);
+
             var globals = new Globals
             {
                 Parameters = parameters,
@@ -157,17 +179,20 @@ namespace AiCoreApi.SemanticKernel.Agents
                 SetCacheValue = _cacheAccessor.SetCacheValue
             };
 
-            // Clean the script code by removing #r directives
+            // Clean out #r directives
             var cleanedCode = Regex.Replace(csharpCode, @"#r\s+""nuget:[^""]+""", "");
+            cleanedCode = Regex.Replace(cleanedCode, @"#r\s+""[^""]+""", "");
 
-            // Cache compiled scripts
+            // Create a stable cache key
             var scriptCacheKey = cleanedCode.GetHash().Replace("=", "").Replace("/", "");
+
             if (!_compiledScripts.TryGetValue(scriptCacheKey, out var compiledScript))
             {
-                // Extract and resolve NuGet packages
+                // Extract and resolve any NuGet directives
                 var nugetDirectives = ExtractNuGetDirectives(csharpCode);
                 var assemblyPathsJson = nugetDirectives.ToJson();
                 var assemblyPathsCacheKey = assemblyPathsJson?.GetHash() ?? "default";
+
                 _assemblyPaths.TryGetValue(assemblyPathsCacheKey, out var assemblyPaths);
                 if (assemblyPaths == null)
                 {
@@ -175,13 +200,18 @@ namespace AiCoreApi.SemanticKernel.Agents
                     _assemblyPaths.TryAdd(assemblyPathsCacheKey, assemblyPaths);
                 }
 
-                // Run the script
+                // Build script options with references as metadata
                 var scriptOptions = ScriptOptions.Default
-                    .WithReferences(assemblyPaths.Select(LoadAssembly));
+                    .WithReferences(assemblyPaths.Select(p => MetadataReference.CreateFromFile(p)));
 
+                // Optionally include imports if needed:
+                // scriptOptions = scriptOptions.WithImports("System", "System.Linq", ...);
+
+                // Create the script
                 compiledScript = CSharpScript.Create<string>(cleanedCode, scriptOptions, typeof(Globals));
                 _compiledScripts.TryAdd(scriptCacheKey, compiledScript);
             }
+
             try
             {
                 _responseAccessor.AddDebugMessage(DebugMessageSenderName, "C# Code Execution (quick)", "");
@@ -191,22 +221,16 @@ namespace AiCoreApi.SemanticKernel.Agents
             }
             catch (Exception e)
             {
-                _responseAccessor.AddDebugMessage(DebugMessageSenderName, "C# Code Error (quick)", $"Exception: {e.Message}\r\n\r\nInner Exception: {e.InnerException?.Message}");
+                _responseAccessor.AddDebugMessage(
+                    DebugMessageSenderName,
+                    "C# Code Error (quick)",
+                    $"Exception: {e.Message}\r\n\r\nInner Exception: {e.InnerException?.Message}"
+                );
                 throw;
             }
         }
 
-        private static Assembly LoadAssembly(string path)
-        {
-            var assemblyName = AssemblyName.GetAssemblyName(path);
-            var loadedAssembly = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(a => a.FullName == assemblyName.FullName);
-            if (loadedAssembly != null)
-            {
-                return loadedAssembly;
-            }
-            return Assembly.LoadFile(path);
-        }
-
+        // Helper for chaining an agent call from within the code
         private string ExecuteAgent(string agentName, List<string>? parameters = null)
         {
             _plannerHelpers.CsharpCodeAgent = this;
@@ -216,13 +240,16 @@ namespace AiCoreApi.SemanticKernel.Agents
             }
             catch (Exception e)
             {
-                _responseAccessor.AddDebugMessage(DebugMessageSenderName,
-                    "C# Code ExecuteAgent Error", $"Agent: {agentName}\r\n\r\n Exception: {e.Message}\r\n\r\nInner Exception: {e.InnerException?.Message}");
+                _responseAccessor.AddDebugMessage(
+                    DebugMessageSenderName,
+                    "C# Code ExecuteAgent Error",
+                    $"Agent: {agentName}\r\n\r\n Exception: {e.Message}\r\n\r\nInner Exception: {e.InnerException?.Message}"
+                );
                 throw;
             }
         }
-
-        // Extracts #r "nuget:" directives from the script
+        
+        // Extract #r "nuget:PackageName,Version" from code
         private List<(string packageName, string version)> ExtractNuGetDirectives(string code)
         {
             var regex = new Regex(@"#r\s+""nuget:\s*(?<package>[^,]+),\s*(?<version>[^""]+)""");
@@ -238,29 +265,63 @@ namespace AiCoreApi.SemanticKernel.Agents
             return packages;
         }
 
-        // Resolves NuGet packages including dependencies
+        // Resolves the given set of packages (plus all dependencies) to local DLL files
         private async Task<List<string>> ResolveNuGetPackages(List<(string packageName, string version)> packages)
         {
             var packagePaths = new List<string>();
             var cache = new SourceCacheContext();
             var logger = NullLogger.Instance;
             var providers = Repository.Provider.GetCoreV3();
-            var repository = new SourceRepository(new PackageSource("https://api.nuget.org/v3/index.json"), providers);
 
-            // To track already processed packages and avoid infinite loops
+            // Create list of repositories based on config settings
+            var repositories = new List<SourceRepository>();
+
+            // Add custom feed if enabled
+            if (_extendedConfig.UseCustomNugetFeed && !string.IsNullOrEmpty(_extendedConfig.CustomNugetFeedUrl))
+            {
+                var customSource = new PackageSource(_extendedConfig.CustomNugetFeedUrl);
+
+                // Add API key credentials if provided
+                if (!string.IsNullOrEmpty(_extendedConfig.CustomNugetFeedApiKey))
+                {
+                    customSource.Credentials = new PackageSourceCredential(
+                        customSource.Name,
+                        "user",
+                        _extendedConfig.CustomNugetFeedApiKey,
+                        isPasswordClearText: true,
+                        validAuthenticationTypesText: null);
+                }
+
+                repositories.Add(new SourceRepository(customSource, providers));
+            }
+
+            // Add NuGet.org as fallback or if no custom feed is configured
+            if (_extendedConfig.UseNugetOrgFallback || repositories.Count == 0)
+            {
+                var nugetSource = new PackageSource("https://api.nuget.org/v3/index.json");
+                repositories.Add(new SourceRepository(nugetSource, providers));
+            }
+
             var processedPackages = new HashSet<string>();
             foreach (var (packageName, version) in packages)
             {
-                await ResolvePackageAndDependencies(packageName, version, repository, cache, logger, packagePaths, processedPackages);
+                await ResolvePackageAndDependencies(
+                    packageName,
+                    version,
+                    repositories,
+                    cache,
+                    logger,
+                    packagePaths,
+                    processedPackages
+                );
             }
             return packagePaths;
         }
 
-        // Resolves a package and its dependencies
         private async Task ResolvePackageAndDependencies(
             string packageName,
             string version,
-            SourceRepository repository,
+            List<SourceRepository> repositories,
             SourceCacheContext cache,
             ILogger logger,
             List<string> packagePaths,
@@ -269,75 +330,104 @@ namespace AiCoreApi.SemanticKernel.Agents
             var currentFramework = NuGetFramework.ParseFolder($"net{Environment.Version.Major}.{Environment.Version.Minor}");
             var runtimeIdentifier = RuntimeInformation.RuntimeIdentifier;
 
-            var resource = await repository.GetResourceAsync<FindPackageByIdResource>();
-            var versionRange = new VersionRange(NuGetVersion.Parse(version));
-            var versions = await resource.GetAllVersionsAsync(packageName, cache, logger, CancellationToken.None);
-            var selectedVersion = versions.FindBestMatch(versionRange, v => v);
+            FindPackageByIdResource? resource = null;
+            NuGetVersion? selectedVersion = null;
 
-            if (selectedVersion == null)
+            foreach (var repository in repositories)
             {
-                if (!versions.Any())
-                    throw new Exception($"Package {packageName} not found in NuGet repository");
+                resource = await repository.GetResourceAsync<FindPackageByIdResource>();
+                var versionRange = new VersionRange(NuGetVersion.Parse(version));
+                var versions = await resource.GetAllVersionsAsync(packageName, cache, logger, CancellationToken.None);
+                selectedVersion = versions.FindBestMatch(versionRange, v => v);
+                if (selectedVersion == null)
+                {
+                    if (!versions.Any())
+                        continue;
 
-                selectedVersion = versions.Last();
-                _responseAccessor.AddDebugMessage(DebugMessageSenderName,
-                    "C# Code Error", $"Nuget Package '{packageName}' version '{version}' not found in Repository. Using latest: {selectedVersion}");
+                    // If the exact version wasn't found, use the latest
+                    selectedVersion = versions.Last();
+                    _responseAccessor.AddDebugMessage(
+                        DebugMessageSenderName,
+                        "C# Code Warning",
+                        $"NuGet package '{packageName}' version '{version}' not found. Using latest: {selectedVersion}"
+                    );
+                }
+                break;
             }
 
-            // Skip if already processed
+            if (resource == null || selectedVersion == null)
+                throw new Exception($"NuGet package '{packageName}' not found in any repository");
+
+
             var packageKey = $"{packageName}.{selectedVersion}";
             if (processedPackages.Contains(packageKey))
-                return;
+                return; // Already handled
 
             processedPackages.Add(packageKey);
 
+            // Download .nupkg into a temp folder
             var tempPath = Path.Combine(Path.GetTempPath(), packageName, selectedVersion.ToNormalizedString());
             Directory.CreateDirectory(tempPath);
-
             var packagePath = Path.Combine(tempPath, $"{packageName}.nupkg");
+
             if (!File.Exists(packagePath))
-                await resource.CopyNupkgToStreamAsync(packageName, selectedVersion, new FileStream(packagePath, FileMode.Create), cache, logger, CancellationToken.None);
+            {
+                using var fs = new FileStream(packagePath, FileMode.Create, FileAccess.Write, FileShare.None);
+                await resource.CopyNupkgToStreamAsync(
+                    packageName,
+                    selectedVersion,
+                    fs,
+                    cache,
+                    logger,
+                    CancellationToken.None
+                );
+            }
 
             var packageReader = new PackageArchiveReader(packagePath);
 
-            // Extract managed DLLs
-            var libItems = (await packageReader.GetLibItemsAsync(CancellationToken.None)).OrderByDescending(x => x.TargetFramework.Version).ToList();
+            // Extract the most appropriate libs
+            var libItems = (await packageReader.GetLibItemsAsync(CancellationToken.None))
+                .Where(x => x.TargetFramework.Framework != ".NETFramework")
+                .OrderByDescending(x => x.TargetFramework.Framework)
+                .ThenByDescending(x => x.TargetFramework.Version)
+                .ToList();
+
             foreach (var item in libItems)
             {
-                var isLoaded = false;
-                // Check framework compatibility
+                bool anythingLoaded = false;
                 if (IsCompatibleFramework(item.TargetFramework, currentFramework))
                 {
                     foreach (var lib in item.Items.Where(i => i.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)))
                     {
                         var libPath = ExtractFile(packageReader, lib, tempPath);
                         packagePaths.Add(libPath);
-                        isLoaded = true;
+                        anythingLoaded = true;
                     }
                 }
-                if (isLoaded)
-                    break;
+                if (anythingLoaded) break;
             }
 
-            // Extract native binaries from runtimes folder
+            // Extract possible native binaries from runtimes
             var runtimeItems = await packageReader.GetItemsAsync("runtimes", CancellationToken.None);
             foreach (var runtimeItem in runtimeItems)
             {
+                // only process items that match our target framework or Any
                 if (!runtimeItem.TargetFramework.Equals(currentFramework) && !runtimeItem.TargetFramework.IsAny)
                     continue;
-                foreach (var runtimeFile in runtimeItem.Items.Where(
-                    i => i.Contains("native/")
-                        && i.Contains($"{runtimeIdentifier}/")
-                        && (i.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) ||
-                            i.EndsWith(".so", StringComparison.OrdinalIgnoreCase) ||
-                            i.EndsWith(".dylib", StringComparison.OrdinalIgnoreCase))))
+
+                foreach (var runtimeFile in runtimeItem.Items.Where(i =>
+                     i.Contains("native/") &&
+                     i.Contains($"{runtimeIdentifier}/") &&
+                     (i.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)
+                      || i.EndsWith(".so", StringComparison.OrdinalIgnoreCase)
+                      || i.EndsWith(".dylib", StringComparison.OrdinalIgnoreCase))))
                 {
-                    // Extract the native binary if managed DLL has dependencies on it
+                    // Extract the native binary in case the managed DLL has dependencies on it
                     ExtractFile(packageReader, runtimeFile, tempPath);
                 }
             }
 
-            // Resolve and process dependencies
+            // Get dependencies and recursively process them
             var dependencies = await packageReader.GetPackageDependenciesAsync(CancellationToken.None);
             foreach (var dependencyGroup in dependencies)
             {
@@ -345,8 +435,6 @@ namespace AiCoreApi.SemanticKernel.Agents
                 {
                     var depPackageName = dependency.Id;
                     var depVersionRange = dependency.VersionRange;
-
-                    // Find best matching version for dependency
                     var depVersions = await resource.GetAllVersionsAsync(depPackageName, cache, logger, CancellationToken.None);
                     var depVersion = depVersions.FindBestMatch(depVersionRange, v => v);
 
@@ -355,20 +443,30 @@ namespace AiCoreApi.SemanticKernel.Agents
                         if (!depVersions.Any())
                             throw new Exception($"Dependency {depPackageName} not found in NuGet repository");
 
+                        // If the exact version isn't found, use the latest
                         depVersion = depVersions.Last();
-                        _responseAccessor.AddDebugMessage(DebugMessageSenderName,
-                            "C# Code Error", $"Dependency Nuget Package '{depPackageName}' version not found in Repository. Using latest: {depVersion}");
+                        _responseAccessor.AddDebugMessage(
+                            DebugMessageSenderName,
+                            "C# Code Warning",
+                            $"Dependency NuGet package '{depPackageName}' version not found. Using latest: {depVersion}"
+                        );
                     }
 
                     try
                     {
-                        // Recursively resolve the dependency package
-                        await ResolvePackageAndDependencies(depPackageName, depVersion.ToNormalizedString(), repository,
-                            cache, logger, packagePaths, processedPackages);
+                        await ResolvePackageAndDependencies(
+                            depPackageName,
+                            depVersion.ToNormalizedString(),
+                            repositories,
+                            cache,
+                            logger,
+                            packagePaths,
+                            processedPackages
+                        );
                     }
                     catch (Exception e)
                     {
-                        logger.LogError($"Package load error (depPackageName): {e.Message}{e.InnerException?.Message}");
+                        logger.LogError($"Package load error ({depPackageName}): {e.Message} {e.InnerException?.Message}");
                     }
                 }
             }
@@ -376,35 +474,35 @@ namespace AiCoreApi.SemanticKernel.Agents
 
         private bool IsCompatibleFramework(NuGetFramework targetFramework, NuGetFramework currentFramework)
         {
-            return (targetFramework.Framework == ".NETStandard" || targetFramework.Framework == ".NETCoreApp") &&
-                   targetFramework.Version <= currentFramework.Version;
+            // Basic check for .NET Standard or .NETCoreApp with version <= current
+            return (targetFramework.Framework == ".NETStandard" || targetFramework.Framework == ".NETCoreApp")
+                && targetFramework.Version <= currentFramework.Version;
         }
 
         private string ExtractFile(PackageArchiveReader packageReader, string filePath, string tempPath)
         {
-            var libPath = Path.Combine(tempPath, filePath);
-            var libDir = Path.GetDirectoryName(libPath);
-            if (libDir == null)
-                throw new Exception($"Invalid Nuget Package path: {libPath}");
+            var absolutePath = Path.Combine(tempPath, filePath);
+            var dir = Path.GetDirectoryName(absolutePath);
+            if (dir == null)
+                throw new Exception($"Invalid path while extracting: {absolutePath}");
 
-            Directory.CreateDirectory(libDir);
-            if (!File.Exists(libPath))
+            Directory.CreateDirectory(dir);
+
+            // Extract the file if not already
+            if (!File.Exists(absolutePath))
             {
                 using var stream = packageReader.GetStream(filePath);
-                using var fileStream = new FileStream(libPath, FileMode.Create);
+                using var fileStream = new FileStream(absolutePath, FileMode.Create, FileAccess.Write, FileShare.None);
                 stream.CopyTo(fileStream);
             }
 
-            // Copy to target directory for execution
-            var destPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "runtimes", "linux", "native", Path.GetFileName(libPath));
-            if (File.Exists(destPath))
-                return libPath;
-            Directory.CreateDirectory(Path.GetDirectoryName(destPath));
-            File.Copy(libPath, destPath, true);
-            return libPath;
+            // You may optionally copy these to a final location, but it's not always necessary
+            // as you can reference them directly from 'absolutePath'. E.g.:
+            // var finalDest = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Path.GetFileName(absolutePath));
+            // if (!File.Exists(finalDest)) File.Copy(absolutePath, finalDest, true);
+
+            return absolutePath;
         }
-
-
         public class Globals
         {
             public Dictionary<string, string> Parameters { get; set; }
@@ -415,100 +513,121 @@ namespace AiCoreApi.SemanticKernel.Agents
             public Func<string, string, int, string> SetCacheValue { get; set; }
         }
 
+        /// <summary>
+        /// Compiles the given C# code to a DLL on disk using Roslyn, referencing the specified assemblies.
+        /// </summary>
         public class DynamicCompiler
         {
-            public string CompileCodeToDll(string code, string outputDllPath, IEnumerable<string> references)
+            public string CompileCodeToDll(string code, string outputDllPath, IEnumerable<string> references, string scriptCacheKey)
             {
                 var syntaxTree = CSharpSyntaxTree.ParseText(code);
 
-                // Use a custom AssemblyLoadContext for loading assemblies
-                var loadContext = new CustomAssemblyLoadContext();
-                try
+                // Gather metadata references
+                var loadedReferences = new List<MetadataReference>
                 {
-                    var loadedReferences = new List<MetadataReference>();
-                    // Include a reference to common assemblies
-                    var commonReferences = new[]
-                    {
-                        MetadataReference.CreateFromFile(typeof(object).Assembly.Location), // System.Private.CoreLib
-                        MetadataReference.CreateFromFile(typeof(Console).Assembly.Location), // System.Console
-                        MetadataReference.CreateFromFile(typeof(Enumerable).Assembly.Location) // System.Linq
-                    };
-                    loadedReferences.AddRange(commonReferences);
-                    // Load references from the current AppDomain
-                    var assembliesReferences = AppDomain.CurrentDomain.GetAssemblies()
-                        .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location))
-                        .Select(x => x.Location)
-                        .ToList();
-                    // Add custom references
-                    assembliesReferences.AddRange(references);
-                    foreach (var reference in assembliesReferences)
+                    // System.Private.CoreLib
+                    MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
+                    // System.Console
+                    MetadataReference.CreateFromFile(typeof(Console).Assembly.Location),
+                    // System.Linq
+                    MetadataReference.CreateFromFile(typeof(Enumerable).Assembly.Location)
+                };
+
+                // Load references from the current AppDomain
+                var assembliesReferences = AppDomain.CurrentDomain.GetAssemblies()
+                    .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location))
+                    .Select(x => x.Location)
+                    .ToList();
+
+                // Add custom references
+                assembliesReferences.AddRange(references);
+                foreach (var reference in assembliesReferences.Distinct())
+                {
+                    if (File.Exists(reference))
                     {
                         try
                         {
-                            var assembly = loadContext.LoadFromAssemblyPath(reference);
-                            loadedReferences.Add(MetadataReference.CreateFromFile(assembly.Location));
+                            loadedReferences.Add(MetadataReference.CreateFromFile(reference));
                         }
-                        catch (Exception ex)
+                        catch
                         {
-                            // Ignore missing references, duplicates etc
+                            // Skip any references that can't be processed
                         }
                     }
-                    var compilation = CSharpCompilation.Create(
-                        Path.GetFileNameWithoutExtension(outputDllPath),
-                        new[] { syntaxTree },
-                        loadedReferences,
-                        new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
-
-                    using var dllStream = new FileStream(outputDllPath, FileMode.Create);
-                    var result = compilation.Emit(dllStream);
-                    if (!result.Success)
-                    {
-                        var errors = string.Join("\n", result.Diagnostics
-                            .Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-                            .Select(diagnostic => diagnostic.ToString()));
-                        throw new Exception($"Compilation failed:\n{errors}");
-                    }
-
-                    return outputDllPath;
                 }
-                finally
+
+                var compilation = CSharpCompilation.Create(
+                    assemblyName: Path.GetFileNameWithoutExtension(outputDllPath),
+                    syntaxTrees: new[] { syntaxTree },
+                    references: loadedReferences,
+                    options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+                );
+
+                using var dllStream = new FileStream(outputDllPath, FileMode.Create);
+                var result = compilation.Emit(dllStream);
+                if (!result.Success)
                 {
-                    loadContext.Unload();
-                    GC.Collect();
-                    GC.WaitForPendingFinalizers();
-                    GC.Collect();
+                    var errors = string.Join("\n", result.Diagnostics
+                        .Where(d => d.Severity == DiagnosticSeverity.Error)
+                        .Select(d => d.ToString()));
+                    throw new Exception($"Compilation failed:\n{errors}");
                 }
+                return outputDllPath;
             }
         }
 
-        public class CustomAssemblyLoadContext : AssemblyLoadContext
+        /// <summary>
+        /// A collectible AssemblyLoadContext that can load an assembly, execute it, and be unloaded to free memory.
+        /// </summary>
+        public class CustomAssemblyLoadContext : AssemblyLoadContext, IDisposable
         {
             public CustomAssemblyLoadContext() : base(isCollectible: true) { }
-            protected override Assembly Load(AssemblyName assemblyName) => null; // Prevent default resolution
+            protected override Assembly Load(AssemblyName assemblyName) => null;
+            public void Dispose()
+            {
+                Unload();
+            }
         }
 
+        /// <summary>
+        /// Loads and executes a method from a DLL in a collectible AssemblyLoadContext, then unloads.
+        /// </summary>
         public class DynamicAssemblyExecutor
         {
-            public object Execute(string dllPath, string typeName, string methodName, object[] parameters)
+            public object Execute(string dllPath, string typeName, string methodName, object[] parameters, List<string>? references)
             {
-                var loadContext = new CustomAssemblyLoadContext();
+                using var alc = new CustomAssemblyLoadContext();
                 try
                 {
-                    var assembly = loadContext.LoadFromAssemblyPath(dllPath);
+                    var assembly = alc.LoadFromAssemblyPath(dllPath);
+                    // Distinct by File Name, dispite the path, as the
+                    if (references != null)
+                    {
+                        references = references.GroupBy(Path.GetFileName).Select(g => g.First()).ToList();
+                        foreach (var reference in references)
+                        {
+                            if (File.Exists(reference) && alc.Assemblies.All(a => a.Location != reference))
+                            {
+                                alc.LoadFromAssemblyPath(reference);
+                            }
+                        }
+                    }
                     var type = assembly.GetType(typeName);
                     if (type == null)
-                        throw new Exception($"Type '{typeName}' not found in assembly.");
+                        throw new Exception($"Type '{typeName}' not found in assembly {dllPath}.");
 
                     var method = type.GetMethod(methodName);
                     if (method == null)
-                        throw new Exception($"Method '{methodName}' not found in type '{typeName}'.");
+                        throw new Exception($"Method '{methodName}' not found on type '{typeName}'.");
 
                     var instance = Activator.CreateInstance(type);
                     return method.Invoke(instance, parameters);
                 }
                 finally
                 {
-                    loadContext.Unload();
+                    alc.Unload();
+
+                    // Force a couple of GCs to ensure resources are actually reclaimed
                     GC.Collect();
                     GC.WaitForPendingFinalizers();
                     GC.Collect();
@@ -517,23 +636,19 @@ namespace AiCoreApi.SemanticKernel.Agents
 
             public MethodInfo? GetMethodInfo(string dllPath, string typeName, string methodName)
             {
-                var loadContext = new CustomAssemblyLoadContext();
+                using var alc = new CustomAssemblyLoadContext();
                 try
                 {
-                    var assembly = loadContext.LoadFromAssemblyPath(dllPath);
+                    var assembly = alc.LoadFromAssemblyPath(dllPath);
                     var type = assembly.GetType(typeName);
-                    if (type == null)
-                        throw new Exception($"Type '{typeName}' not found in assembly.");
+                    if (type == null) return null;
 
                     var method = type.GetMethod(methodName);
-                    if (method == null)
-                        throw new Exception($"Method '{methodName}' not found in type '{typeName}'.");
-
-                    return method; // Return MethodInfo object
+                    return method;
                 }
                 finally
                 {
-                    loadContext.Unload();
+                    alc.Unload();
                     GC.Collect();
                     GC.WaitForPendingFinalizers();
                     GC.Collect();

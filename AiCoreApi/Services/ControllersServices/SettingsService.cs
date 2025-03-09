@@ -81,6 +81,7 @@ namespace AiCoreApi.Services.ControllersServices
                 UseSearchTab = _extendedConfig.UseSearchTab,
                 UseMicrosoftSso = _extendedConfig.UseMicrosoftSso,
                 UseInternalUsers = _extendedConfig.UseInternalUsers,
+                DebugMessagesStorageEnabled = _extendedConfig.DebugMessagesStorageEnabled,
                 FeatureFlags = _featureFlags.GetValues()
             };
         }

@@ -5,6 +5,7 @@ using AiCoreApi.Common.Data;
 using AiCoreApi.Models.DbModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -13,9 +14,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AiCoreApi.Migrations
 {
     [DbContext(typeof(Db))]
-    partial class DbModelSnapshot : ModelSnapshot
+    [Migration("20250307113734_DebugLog")]
+    partial class DebugLog
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -160,6 +163,7 @@ namespace AiCoreApi.Migrations
                         .HasColumnName("date");
 
                     b.Property<List<DebugMessage>>("DebugMessages")
+                        .IsRequired()
                         .HasColumnType("jsonb")
                         .HasColumnName("debug_messages");
 
