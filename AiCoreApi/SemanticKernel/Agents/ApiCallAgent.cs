@@ -17,6 +17,7 @@ namespace AiCoreApi.SemanticKernel.Agents
             public const string ContentType = "contentType";
             public const string Body = "body";
             public const string Authentication = "authentication";
+            public const string UseRetry = "useRetry";
             public const string CustomHeaderName = "customHeaderName";
             public const string CustomHeaderValue = "customHeaderValue";
         }
@@ -71,7 +72,11 @@ namespace AiCoreApi.SemanticKernel.Agents
 
         private HttpClient GetHttpClient(AgentModel agent, Dictionary<string, string> parameters)
         {
-            var httpClient = _httpClientFactory.CreateClient("RetryClient");
+            var noRetry = agent.Content.ContainsKey(AgentContentParameters.UseRetry) && agent.Content[AgentContentParameters.UseRetry].Value.ToLower() == "false";
+
+            var httpClient = noRetry
+                ? _httpClientFactory.CreateClient("NoRetryClient")
+                : _httpClientFactory.CreateClient("RetryClient");
             if (agent.Content.ContainsKey(AgentContentParameters.Authentication) 
                 && !string.IsNullOrWhiteSpace(agent.Content[AgentContentParameters.Authentication].Value))
             {

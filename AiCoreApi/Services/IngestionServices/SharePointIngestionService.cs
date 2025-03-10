@@ -37,7 +37,7 @@ namespace AiCoreApi.Services.IngestionServices
             _documentMetadataProcessor = documentMetadataProcessor;
             _connectionProcessor = connectionProcessor;
             _taskProcessor = taskProcessor;
-            _httpClient = httpClientFactory.CreateClient("RetryClient");
+            _httpClient = httpClientFactory.CreateClient("NoRetryClient");
             _logger = logger;
             _dataIngestionHelperService = dataIngestionHelperService;
         }
