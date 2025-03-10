@@ -3,6 +3,8 @@ using AiCoreApi.Common;
 using AiCoreApi.SemanticKernel;
 using AiCoreApi.SemanticKernel.Agents;
 using AiCoreApi.Common.Extensions;
+using AiCoreApi.Data.Processors;
+using AiCoreApi.Models.DbModels;
 
 namespace AiCoreApi.Services.ControllersServices
 {
@@ -15,6 +17,7 @@ namespace AiCoreApi.Services.ControllersServices
         private readonly IPromptAgent _promptAgent;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IVectorSearchAgent _vectorSearchAgent;
+        private readonly IDebugLogProcessor _debugLogProcessor;
         private readonly ILogger _logger;
 
         public CopilotService(
@@ -25,6 +28,7 @@ namespace AiCoreApi.Services.ControllersServices
             IPromptAgent promptAgent,
             IHttpClientFactory httpClientFactory,
             IVectorSearchAgent vectorSearchAgent,
+            IDebugLogProcessor debugLogProcessor,
             ILogger<CopilotService> logger)
         {
             _requestAccessor = requestAccessor;
@@ -34,6 +38,7 @@ namespace AiCoreApi.Services.ControllersServices
             _promptAgent = promptAgent;
             _httpClientFactory = httpClientFactory;
             _vectorSearchAgent = vectorSearchAgent;
+            _debugLogProcessor = debugLogProcessor;
             _logger = logger;
         }
 
@@ -46,6 +51,7 @@ namespace AiCoreApi.Services.ControllersServices
         public async Task<MessageDialogViewModel> Chat()
         {
             var messageDialog = _requestAccessor.MessageDialog!;
+            var requestMessage = messageDialog.Messages?.Last();
             try
             {
                 var response = await _planner.GetChatResponse();
@@ -64,9 +70,18 @@ namespace AiCoreApi.Services.ControllersServices
             messageDialog.ClearFilesContent();
             _logger.LogDebug("Chat response generated for: {Login}, Tokens spent: {Spent}, Request: {Request}, Response: {Response}", 
                 _requestAccessor.Login, 
-                _responseAccessor.CurrentMessage.SpentTokens.ToJson(), 
-                _requestAccessor.MessageDialog.Messages.Last().Text, 
+                _responseAccessor.CurrentMessage.SpentTokens.ToJson(),
+                requestMessage?.Text, 
                 _responseAccessor.CurrentMessage.Text);
+            var message = requestMessage?.Text ?? "";
+            if (requestMessage?.Options != null &&
+                requestMessage.Options.Any(x => x.Type == MessageDialogViewModel.CallOptions.CallOptionsType.AgentCall))
+            {
+                var messageItem = requestMessage.Options.First(x => x.Type == MessageDialogViewModel.CallOptions.CallOptionsType.AgentCall);
+                var parametersString = string.Join(Environment.NewLine, messageItem.Parameters.Select(x => $" - {x.Key}: {x.Value}"));
+                message = $"Agent: {messageItem.Name}{Environment.NewLine}Parameters:{Environment.NewLine}{parametersString}";
+            }
+            await _debugLogProcessor.Add(_requestAccessor.Login, message, messageDialog);
             return messageDialog;
         }
 
@@ -135,6 +150,8 @@ namespace AiCoreApi.Services.ControllersServices
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadAsStringAsync();
         }
+
+
     }
 
     public interface ICopilotService

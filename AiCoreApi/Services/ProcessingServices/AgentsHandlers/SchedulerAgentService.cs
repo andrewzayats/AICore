@@ -1,3 +1,4 @@
+using AiCoreApi.Common;
 using AiCoreApi.Data.Processors;
 using AiCoreApi.Models.DbModels;
 using NCrontab;
@@ -10,9 +11,11 @@ namespace AiCoreApi.Services.ProcessingServices.AgentsHandlers
 
         public SchedulerAgentService(
             ILoginProcessor loginProcessor,
-            IAgentsProcessor agentsProcessor,
+            IAgentsProcessor agentsProcessor, 
+            IDebugLogProcessor debugLogProcessor,
+            ExtendedConfig extendedConfig,
             IServiceProvider serviceProvider)
-            :base(loginProcessor, serviceProvider)
+            :base(loginProcessor, debugLogProcessor, extendedConfig, serviceProvider)
         {
             _agentsProcessor = agentsProcessor;
         }

@@ -22,7 +22,8 @@ namespace AiCoreApi.Common.Data
         public DbSet<SpentModel> Spent { get; set; }
         public DbSet<AgentModel> Agents { get; set; }
         public DbSet<SchedulerAgentTaskModel> SchedulerAgentTasks { get; set; }
-
+        public DbSet<DebugLogModel> DebugLog { get; set; }
+        
         private readonly IDbQuery _dbQuery;
         private readonly ILogger<Db> _logger;
         private readonly IDataSourceProvider _dataSourceProvider;

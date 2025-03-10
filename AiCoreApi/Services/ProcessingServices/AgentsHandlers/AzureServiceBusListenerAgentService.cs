@@ -1,3 +1,4 @@
+using AiCoreApi.Common;
 using AiCoreApi.Common.Extensions;
 using AiCoreApi.Data.Processors;
 using AiCoreApi.Models.DbModels;
@@ -16,8 +17,10 @@ namespace AiCoreApi.Services.ProcessingServices.AgentsHandlers
             ILoginProcessor loginProcessor,
             IAgentsProcessor agentsProcessor,
             IServiceProvider serviceProvider,
+            IDebugLogProcessor debugLogProcessor,
+            ExtendedConfig extendedConfig,
             IConnectionProcessor connectionProcessor)
-            : base(loginProcessor, serviceProvider)
+            : base(loginProcessor, debugLogProcessor, extendedConfig, serviceProvider)
         {
             _agentsProcessor = agentsProcessor;
             _connectionProcessor = connectionProcessor;

@@ -10,6 +10,7 @@ namespace AiCoreApi.Services.ProcessingServices
         private readonly IBackgroundWorkerAgentService _backgroundWorkerAgentService;
         private readonly IAzureServiceBusListenerAgentService _azureServiceBusListenerAgentService;
         private readonly IRabbitMqListenerAgentService _rabbitMqListenerAgentService;
+        private readonly IDebugLogsProcessingService _debugLogsProcessingService;
         private readonly IInstanceSync _instanceSync;
         private readonly Config _config;
 
@@ -18,6 +19,7 @@ namespace AiCoreApi.Services.ProcessingServices
             IBackgroundWorkerAgentService backgroundWorkerAgentService,
             IAzureServiceBusListenerAgentService azureServiceBusListenerAgentService,
             IRabbitMqListenerAgentService rabbitMqListenerAgentService,
+            IDebugLogsProcessingService debugLogsProcessingService,
             IInstanceSync instanceSync,
             Config config)
         {
@@ -25,6 +27,7 @@ namespace AiCoreApi.Services.ProcessingServices
             _backgroundWorkerAgentService = backgroundWorkerAgentService;
             _azureServiceBusListenerAgentService = azureServiceBusListenerAgentService;
             _rabbitMqListenerAgentService = rabbitMqListenerAgentService;
+            _debugLogsProcessingService = debugLogsProcessingService;
             _instanceSync = instanceSync;
             _config = config;
         }
@@ -35,6 +38,7 @@ namespace AiCoreApi.Services.ProcessingServices
             {
                 await _azureServiceBusListenerAgentService.ProcessTask();
                 await _rabbitMqListenerAgentService.ProcessTask();
+                await _debugLogsProcessingService.ProcessTask();
                 if (_instanceSync.IsMainInstance)
                 {
                     await _backgroundWorkerAgentService.ProcessTask();
@@ -55,7 +59,7 @@ namespace AiCoreApi.Services.ProcessingServices
                 GC.Collect();
             }
         }
-        
+
         public Task StopAsync(CancellationToken cancellationToken)
         {
             return Task.CompletedTask;
