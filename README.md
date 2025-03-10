@@ -119,7 +119,7 @@ helm upgrade aicore "./helm" --namespace $namespace --create-namespace --install
     --set global.containerRegistry.name=$acrName.azurecr.io \
     --set global.aicore.service.tag=$aiCoreTag \
     --set global.ingestion.service.tag=$ingestionTag \
-    --set api.postgres.internal=false \
+    --set-string api.postgres.internal='False' \
     --set api.postgres.host=$dbHost \
     --set api.postgres.port=5432 \
     --set api.postgres.userName=$dbAdministratorLogin \
