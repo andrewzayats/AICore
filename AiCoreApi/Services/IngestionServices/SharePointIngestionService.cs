@@ -385,22 +385,23 @@ namespace AiCoreApi.Services.IngestionServices
 
         internal class File
         {
-            private readonly Drive _drive;
-            private readonly DriveItem _item;
-            private string? _uniqueId;
-
-            public string UniqueId => _uniqueId ??= $"{_drive.Id}/{_item.Id}".UniqueId();
-            public string? DriveId => _drive.Id;
-            public string? ItemId => _item.Id;
-            public string? Name => _item.Name;
-            public string? Url => _item.WebUrl;
-            public DateTimeOffset CreatedTime => _item.CreatedDateTime ?? DateTimeOffset.MinValue;
-            public DateTimeOffset LastModifiedTime => _item.LastModifiedDateTime ?? DateTimeOffset.MinValue;
+            public string UniqueId { get; }
+            public string? DriveId { get; }
+            public string? ItemId { get; }
+            public string? Name { get; }
+            public string? Url { get; }
+            public DateTimeOffset CreatedTime { get; }
+            public DateTimeOffset LastModifiedTime { get; }
 
             public File(Drive drive, DriveItem item)
             {
-                _drive = drive;
-                _item = item;
+                UniqueId = $"{drive.Id}/{item.Id}".UniqueId();
+                DriveId = drive.Id;
+                ItemId = item.Id;
+                Name = item.Name;
+                Url = item.WebUrl;
+                CreatedTime = item.CreatedDateTime ?? DateTimeOffset.MinValue;
+                LastModifiedTime = item.LastModifiedDateTime ?? DateTimeOffset.MinValue;
             }
         }
 
