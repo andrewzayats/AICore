@@ -21,7 +21,7 @@ public class ConnectionsController : ControllerBase
 
     [HttpGet]
     [CombinedAuthorize]
-    [AdminAuthorize]
+    [Authorize]
     public async Task<IActionResult> ConnectionsList()
     {
         var currentUser = this.GetLogin();
