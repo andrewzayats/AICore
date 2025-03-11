@@ -8,6 +8,7 @@ using AiCoreApi.Data.Processors;
 using AiCoreApi.Common.Extensions;
 using Microsoft.KernelMemory.Pipeline;
 using AiCoreApi.Common.KernelMemory;
+using static AiCoreApi.Common.ExceptionHandlingMiddleware;
 
 namespace AiCoreApi.Services.IngestionServices
 {
@@ -85,49 +86,56 @@ namespace AiCoreApi.Services.IngestionServices
 
         private async Task<List<string>> GetSharePointFolders(GraphServiceClient graph, string siteName, string driveName, string? path)
         {
-            path = path?.Trim('/');
-            var site = await graph.Sites[siteName].GetAsync() ?? throw new InvalidOperationException($"Site {siteName} not found.");
-            var driveCollection = await graph.Sites[site.Id].Drives.GetAsync(rc =>
-                { rc.QueryParameters.Select = new[] { "id", "name" }; });
-            var drives = new List<Drive>();
-            if (driveCollection != null)
-            {
-                await PageIterator<Drive, DriveCollectionResponse>.CreatePageIterator(graph, driveCollection, drive =>
-                {
-                    drives.Add(drive);
-                    return true;
-                }).IterateAsync();
-            }
-            var drive = drives.Find(d => driveName.Equals(d.Name, StringComparison.InvariantCultureIgnoreCase))
-                        ?? throw new InvalidOperationException($"Drive {driveName} not found.");
-
-            DriveItem? driveItem;
             try
             {
-                driveItem = string.IsNullOrWhiteSpace(path)
-                    ? await graph.Drives[drive.Id].Root.GetAsync()
-                    : await graph.Drives[drive.Id].Root.ItemWithPath(path).GetAsync();
-            }
-            catch
-            {
-                // Path not found
-                return new List<string>();
-            }
-
-            var rootPath = string.IsNullOrWhiteSpace(path) ? "/" : $"/{path}/";
-            var folders = new List<string> { rootPath };
-            var childrenCollection = await graph.Drives[drive.Id].Items[driveItem.Id].Children.GetAsync();
-            var children = new List<DriveItem>();
-            if (childrenCollection != null)
-            {
-                await PageIterator<DriveItem, DriveItemCollectionResponse>.CreatePageIterator(graph, childrenCollection, child =>
+                path = path?.Trim('/');
+                var site = await graph.Sites[siteName].GetAsync() ?? throw new InvalidOperationException($"Site {siteName} not found.");
+                var driveCollection = await graph.Sites[site.Id].Drives.GetAsync(rc =>
+                { rc.QueryParameters.Select = new[] { "id", "name" }; });
+                var drives = new List<Drive>();
+                if (driveCollection != null)
                 {
-                    children.Add(child);
-                    return true;
-                }).IterateAsync();
+                    await PageIterator<Drive, DriveCollectionResponse>.CreatePageIterator(graph, driveCollection, drive =>
+                    {
+                        drives.Add(drive);
+                        return true;
+                    }).IterateAsync();
+                }
+                var drive = drives.Find(d => driveName.Equals(d.Name, StringComparison.InvariantCultureIgnoreCase))
+                            ?? throw new InvalidOperationException($"Drive {driveName} not found.");
+
+                DriveItem? driveItem;
+                try
+                {
+                    driveItem = string.IsNullOrWhiteSpace(path)
+                        ? await graph.Drives[drive.Id].Root.GetAsync()
+                        : await graph.Drives[drive.Id].Root.ItemWithPath(path).GetAsync();
+                }
+                catch
+                {
+                    // Path not found
+                    return new List<string>();
+                }
+
+                var rootPath = string.IsNullOrWhiteSpace(path) ? "/" : $"/{path}/";
+                var folders = new List<string> { rootPath };
+                var childrenCollection = await graph.Drives[drive.Id].Items[driveItem.Id].Children.GetAsync();
+                var children = new List<DriveItem>();
+                if (childrenCollection != null)
+                {
+                    await PageIterator<DriveItem, DriveItemCollectionResponse>.CreatePageIterator(graph, childrenCollection, child =>
+                    {
+                        children.Add(child);
+                        return true;
+                    }).IterateAsync();
+                }
+                folders.AddRange(children.Where(child => child.Folder != null).Select(child => $"{rootPath}{child.Name}/"));
+                return folders;
             }
-            folders.AddRange(children.Where(child => child.Folder != null).Select(child => $"{rootPath}{child.Name}/"));
-            return folders;
+            catch (Exception)
+            {
+                throw new AiCoreUiException("Cannot read SharePoint folders. Please check your connection settings.");
+            }
         }
 
         private List<string> GetExcludedExtensions(IngestionModel ingestion)

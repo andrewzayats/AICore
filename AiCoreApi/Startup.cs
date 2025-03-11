@@ -215,7 +215,8 @@ public class Startup
         app.UseCors("CorsPolicy");
 
         app.UseMetricServer();
-        app.UseHttpMetrics();
+        app.UseHttpMetrics(); 
+        app.UseMiddleware<ExceptionHandlingMiddleware>();
 
         app.UseEndpoints(endpoints =>
         {
