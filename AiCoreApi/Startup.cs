@@ -104,7 +104,18 @@ public class Startup
                 ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
             })
             .ConfigurePrimaryHttpMessageHandler<OpenAiHttpCallHandler>();
-        //.ConfigurePrimaryHttpMessageHandler(sp => new OpenAiHttpCallHandler(extendedConfig, sp));
+
+        services.AddHttpClient("NoRetryClient", httpClient =>
+            {
+                httpClient.Timeout = TimeSpan.FromMinutes(3); // wait 3 min instead of 100 sec by default
+            })
+            .SetHandlerLifetime(TimeSpan.FromMinutes(4))
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+            {
+                Proxy = string.IsNullOrEmpty(extendedConfig.Proxy) ? null : new WebProxy(new Uri(extendedConfig.Proxy)),
+                ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+            })
+            .ConfigurePrimaryHttpMessageHandler<OpenAiHttpCallHandler>();
 
         var combinedAuthenticationScheme = "Combined";
         services.AddAuthentication(options =>
@@ -204,7 +215,8 @@ public class Startup
         app.UseCors("CorsPolicy");
 
         app.UseMetricServer();
-        app.UseHttpMetrics();
+        app.UseHttpMetrics(); 
+        app.UseMiddleware<ExceptionHandlingMiddleware>();
 
         app.UseEndpoints(endpoints =>
         {
