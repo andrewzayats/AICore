@@ -25,6 +25,7 @@ namespace AiCoreApi.SemanticKernel.Agents
             public const string OutputType = "outputType";
             public const string JsonSchema = "jsonSchema";
             public const string SystemMessage = "systemMessage";
+            public const string StrictMode = "strictMode";
             public const string Temperature = "temperature";
         }
 
@@ -67,6 +68,7 @@ namespace AiCoreApi.SemanticKernel.Agents
             var jsonSchema = agent.Content.ContainsKey(AgentContentParameters.JsonSchema) ? ApplyParameters(agent.Content[AgentContentParameters.JsonSchema].Value, parameters) : string.Empty;
             var systemMessage = agent.Content.ContainsKey(AgentContentParameters.SystemMessage) ? agent.Content[AgentContentParameters.SystemMessage].Value : string.Empty;
             var temperature = agent.Content.ContainsKey(AgentContentParameters.Temperature) ? Convert.ToDouble(agent.Content[AgentContentParameters.Temperature].Value) : 0;
+            var strictMode = !agent.Content.ContainsKey(AgentContentParameters.StrictMode) || agent.Content[AgentContentParameters.StrictMode].Value == "true";
 
             var connections = await _connectionProcessor.List();
             var llmConnection = GetConnection(_requestAccessor, _responseAccessor, connections,
@@ -93,7 +95,7 @@ namespace AiCoreApi.SemanticKernel.Agents
                 var chatResponseFormat = ChatResponseFormat.CreateJsonSchemaFormat(
                     jsonSchemaFormatName: "prompt_result",
                     jsonSchema: BinaryData.FromString(jsonSchema),
-                    jsonSchemaIsStrict: true);
+                    jsonSchemaIsStrict: strictMode);
                 executionSettings.ResponseFormat = chatResponseFormat;
             }
             var resultContent = await chat.GetChatMessageContentAsync(history, executionSettings);
