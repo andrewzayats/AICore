@@ -32,6 +32,7 @@ namespace AiCoreApi.SemanticKernel
         private readonly IHistoryAgent _historyAgent;
         private readonly IRagPromptAgent _ragPromptAgent;
         private readonly IOcrAgent _ocrAgent;
+        private readonly IOcrClassifyDocumentAgent _ocrClassifyDocumentAgent;
         private readonly IBackgroundWorkerAgent _backgroundWorkerAgent;
         private readonly IContentSafetyAgent _contentSafetyAgent;
         private readonly IImageToTextAgent _imageToTextAgent;
@@ -60,6 +61,7 @@ namespace AiCoreApi.SemanticKernel
             IHistoryAgent historyAgent,
             IRagPromptAgent ragPromptAgent,
             IOcrAgent ocrAgent,
+            IOcrClassifyDocumentAgent ocrClassifyDocumentAgent,
             IBackgroundWorkerAgent backgroundWorkerAgent,
             IContentSafetyAgent contentSafetyAgent,
             IImageToTextAgent imageToTextAgent,
@@ -88,6 +90,7 @@ namespace AiCoreApi.SemanticKernel
             _historyAgent = historyAgent;
             _ragPromptAgent = ragPromptAgent;
             _ocrAgent = ocrAgent;
+            _ocrClassifyDocumentAgent = ocrClassifyDocumentAgent;
             _backgroundWorkerAgent = backgroundWorkerAgent;
             _contentSafetyAgent = contentSafetyAgent;
             _imageToTextAgent = imageToTextAgent;
@@ -210,6 +213,7 @@ namespace AiCoreApi.SemanticKernel
                 { AgentType.History, _historyAgent },
                 { AgentType.RagPrompt, _ragPromptAgent },
                 { AgentType.Ocr, _ocrAgent },
+                { AgentType.OcrClassifyDocument, _ocrClassifyDocumentAgent },
                 { AgentType.BackgroundWorker, _backgroundWorkerAgent },
                 { AgentType.ContentSafety, _contentSafetyAgent },
                 { AgentType.ImageToText, _imageToTextAgent },
