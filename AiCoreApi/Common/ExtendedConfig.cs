@@ -90,11 +90,6 @@ public class ExtendedConfig
     [Tooltip("The Planner prompt serves as a template for the root Planner, providing it with instructions for LLM on how to generate a plan of action for the Agents to accomplish the desired outcome. This prompt can incorporate various placeholders: {{currentQuestion}}: The last message exchanged in the Chat dialog. {{pluginsInstructions}}: A combined text derived from the Plugins Instructions sections of all Agents. {{hasFiles}}: A boolean value indicating whether any files were attached to the last message. {{filesNames}}: A list containing the names of all files attached to the last message. {{filesData}}: The parsed text content of all files attached to the last message. It's important to note that not all placeholders may be necessary for every Planner prompt.")]
     public string PlannerPrompt => GetValue<string>("PlannerPrompt", PlannerHelpers.PlannerPromptPlaceholders.PluginsInstructionsPlaceholder);
 
-    [Category(CategoryAttribute.ConfigCategoryEnum.Common)]
-    [Description("Log Level")]
-    [Tooltip("Log Level is used to specify the level of logging that the system should use. The log level determines the amount of information that is logged by the system. The available log levels are: Debug, Information, Warning, Error, and Critical.")]
-    public string LogLevel => GetValue<string>("LogLevel", "Debug");
-
     [Category(CategoryAttribute.ConfigCategoryEnum.Ingestion)]
     [DataType(DataTypeAttribute.ConfigDataTypeEnum.Int)]
     [Description("Ingestion delay in hours")]
@@ -297,6 +292,41 @@ public class ExtendedConfig
     [Description("Custom Nuget Feed API Key")]
     [Tooltip("The Custom Nuget Feed API Key is used to authenticate the custom Nuget feed. This key is used for package management.")]
     public string CustomNugetFeedApiKey => GetValue<string>("CustomNugetFeedApiKey", "");
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.Logging)]
+    [Description("Log Level")]
+    [Tooltip("Log Level is used to specify the level of logging that the system should use. The log level determines the amount of information that is logged by the system. The available log levels are: Debug, Information, Warning, Error, and Critical.")]
+    public string LogLevel => GetValue<string>("LogLevel", "Debug");
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.Logging)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Boolean)]
+    [Description("Log Login/Logout events")]
+    [Tooltip("Log Login/Logout events specifies if the system should log login and logout events. When enabled, the system logs information about user logins and logouts.")]
+    public bool LogLoginLogout => GetValue<bool>("LogLoginLogout", false);
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.Logging)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Boolean)]
+    [Description("Access Token check events")]
+    [Tooltip("Log Access Token check events specifies if the system should log access token check events. When enabled, the system logs information about access token checks.")]
+    public bool LogAccessTokenCheck => GetValue<bool>("LogAccessTokenCheck", false);
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.Logging)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Boolean)]
+    [Description("Log Agent Run events")]
+    [Tooltip("Log Agent Run specifies if the system should log Agent run events. When enabled, the system logs information about Agent runs.")]
+    public bool LogAgentRun => GetValue<bool>("LogAgentRun", false);
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.Logging)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Boolean)]
+    [Description("Log Agent Result events")]
+    [Tooltip("Log Agent Result specifies if the system should log Agent result events. When enabled, the system logs information about Agent results.")]
+    public bool LogAgentResult => GetValue<bool>("LogAgentResult", false);
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.Logging)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Boolean)]
+    [Description("Log Agent PII info (input parameters/result)")]
+    [Tooltip("Log Agent PII info specifies if the system should log Agent PII info. When enabled, the system logs Agent input parameters and result.")]
+    public bool LogAgentPii => GetValue<bool>("LogAgentPii", false);
 }
 
 [AttributeUsage(AttributeTargets.Property)]
@@ -376,5 +406,7 @@ public class CategoryAttribute : Attribute, IAttributeHandler
         Debug,
         [System.ComponentModel.Description("Nuget")]
         Nuget,
+        [System.ComponentModel.Description("Logging")]
+        Logging,
     }
 }

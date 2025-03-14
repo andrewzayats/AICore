@@ -28,18 +28,17 @@ namespace AiCoreApi.SemanticKernel.Agents
         private readonly IConnectionProcessor _connectionProcessor;
         private readonly RequestAccessor _requestAccessor;
         private readonly ResponseAccessor _responseAccessor;
-        private readonly ILogger<StorageAccountAgent> _logger;
 
         public StorageAccountAgent(
             IConnectionProcessor connectionProcessor,
             RequestAccessor requestAccessor,
             ResponseAccessor responseAccessor,
-            ILogger<StorageAccountAgent> logger)
+            ExtendedConfig extendedConfig,
+            ILogger<StorageAccountAgent> logger) : base(requestAccessor, extendedConfig, logger)
         {
             _connectionProcessor = connectionProcessor;
             _requestAccessor = requestAccessor;
             _responseAccessor = responseAccessor;
-            _logger = logger;
         }
 
         public override async Task<string> DoCall(
@@ -100,9 +99,6 @@ namespace AiCoreApi.SemanticKernel.Agents
                 default: throw new InvalidDataException($"Wrong action: {action}");
             }
             _responseAccessor.AddDebugMessage(DebugMessageSenderName, "DoCall Response", result);
-
-            _logger.LogInformation("{Login}, Action:{Action}, ConnectionName: {ConnectionName}",
-                _requestAccessor.Login, "StorageAccount", connection.Name);
             return result;
         }
 

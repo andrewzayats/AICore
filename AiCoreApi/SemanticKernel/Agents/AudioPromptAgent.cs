@@ -30,20 +30,19 @@ namespace AiCoreApi.SemanticKernel.Agents
         private readonly RequestAccessor _requestAccessor;
         private readonly ResponseAccessor _responseAccessor;
         private readonly IHttpClientFactory _httpClientFactory;
-        private readonly ILogger<AudioPromptAgent> _logger;
 
         public AudioPromptAgent(
             IConnectionProcessor connectionProcessor,
             RequestAccessor requestAccessor,
             ResponseAccessor responseAccessor,
             IHttpClientFactory httpClientFactory,
-            ILogger<AudioPromptAgent> logger)
+            ExtendedConfig extendedConfig,
+            ILogger<AudioPromptAgent> logger) : base(requestAccessor, extendedConfig, logger)
         {
             _connectionProcessor = connectionProcessor;
             _requestAccessor = requestAccessor;
             _responseAccessor = responseAccessor;
             _httpClientFactory = httpClientFactory;
-            _logger = logger;
         }
 
         public override async Task<string> DoCall(AgentModel agent, Dictionary<string, string> parameters)
@@ -202,7 +201,6 @@ namespace AiCoreApi.SemanticKernel.Agents
                 });
             }
             _responseAccessor.AddDebugMessage(DebugMessageSenderName, "DoCall Response", responseContent);
-            _logger.LogInformation("{Login}, Action:{Action}, ConnectionName: {ConnectionName}", _requestAccessor.Login, "AzureOpenAIChatAudio", connection.Name);
             return result;
         }
 

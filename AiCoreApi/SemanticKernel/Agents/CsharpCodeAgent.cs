@@ -39,13 +39,15 @@ namespace AiCoreApi.SemanticKernel.Agents
         private readonly ResponseAccessor _responseAccessor;
         private readonly ExtendedConfig _extendedConfig;
         private readonly ICacheAccessor _cacheAccessor;
+        private readonly ILogger<CsharpCodeAgent> _logger;
 
         public CsharpCodeAgent(
             IPlannerHelpers plannerHelpers,
             RequestAccessor requestAccessor,
             ResponseAccessor responseAccessor,
             ExtendedConfig extendedConfig,
-            ICacheAccessor cacheAccessor)
+            ICacheAccessor cacheAccessor,
+            ILogger<CsharpCodeAgent> logger) : base(requestAccessor, extendedConfig, logger)
         {
             _plannerHelpers = plannerHelpers;
             _requestAccessor = requestAccessor;
@@ -53,7 +55,10 @@ namespace AiCoreApi.SemanticKernel.Agents
             _extendedConfig = extendedConfig;
             _cacheAccessor = cacheAccessor;
             _cacheAccessor.KeyPrefix = "AgentExecution-";
+            _logger = logger;
         }
+
+        public async Task<string> DoCallWrapper(AgentModel agent, Dictionary<string, string> parameters) => await base.DoCallWrapper(agent, parameters);
 
         public override async Task<string> DoCall(
             AgentModel agent,
@@ -130,19 +135,19 @@ namespace AiCoreApi.SemanticKernel.Agents
 
                 if (methodParameters.Length == 4)
                 {
-                    // (Dictionary<string,string>, RequestAccessor, ResponseAccessor, Func<string,List<string>?,string>)
-                    args = new object?[]
-                    {
-                        parameters, _requestAccessor, _responseAccessor, executeAgent
-                    };
+                    args = new object?[] { parameters, _requestAccessor, _responseAccessor, executeAgent };
+                }
+                else if (methodParameters.Length == 5)
+                {
+                    args = new object?[] { parameters, _requestAccessor, _responseAccessor, executeAgent, _logger };
                 }
                 else if (methodParameters.Length == 6)
                 {
-                    // (Dictionary<string,string>, RequestAccessor, ResponseAccessor, Func<string,List<string>?,string>, Func<string,string>, Func<string,string,int,string>)
-                    args = new object?[]
-                    {
-                        parameters, _requestAccessor, _responseAccessor, executeAgent, getCacheValue, setCacheValue
-                    };
+                    args = new object?[] { parameters, _requestAccessor, _responseAccessor, executeAgent, getCacheValue, setCacheValue };
+                }
+                else if (methodParameters.Length == 7)
+                {
+                    args = new object?[] { parameters, _requestAccessor, _responseAccessor, executeAgent, getCacheValue, setCacheValue, _logger};
                 }
                 else
                 {
@@ -176,7 +181,8 @@ namespace AiCoreApi.SemanticKernel.Agents
                 ResponseAccessor = _responseAccessor,
                 ExecuteAgent = ExecuteAgent,
                 GetCacheValue = _cacheAccessor.GetCacheValue,
-                SetCacheValue = _cacheAccessor.SetCacheValue
+                SetCacheValue = _cacheAccessor.SetCacheValue,
+                Logger = _logger,
             };
 
             // Clean out #r directives
@@ -511,6 +517,7 @@ namespace AiCoreApi.SemanticKernel.Agents
             public Func<string, List<string>?, string> ExecuteAgent { get; set; }
             public Func<string, string> GetCacheValue { get; set; }
             public Func<string, string, int, string> SetCacheValue { get; set; }
+            public ILogger<CsharpCodeAgent> Logger { get; set; }
         }
 
         /// <summary>
@@ -660,6 +667,6 @@ namespace AiCoreApi.SemanticKernel.Agents
     public interface ICsharpCodeAgent
     {
         Task AddAgent(AgentModel agent, Kernel kernel, List<string> pluginsInstructions);
-        Task<string> DoCall(AgentModel agent, Dictionary<string, string> parameters);
+        Task<string> DoCallWrapper(AgentModel agent, Dictionary<string, string> parameters);
     }
 }

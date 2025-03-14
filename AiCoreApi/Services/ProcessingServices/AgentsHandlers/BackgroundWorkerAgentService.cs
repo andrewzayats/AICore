@@ -69,17 +69,17 @@ namespace AiCoreApi.Services.ProcessingServices.AgentsHandlers
                         if (agentToCallModel.Type == AgentType.Composite)
                         {
                             var compositeAgent = scope.ServiceProvider.GetRequiredService<ICompositeAgent>();
-                            result = await compositeAgent.DoCall(agentToCallModel, parameters, scope.ServiceProvider);
+                            result = await compositeAgent.DoCallWrapper(agentToCallModel, parameters);
                         }
                         else if (agentToCallModel.Type == AgentType.CsharpCode)
                         {
                             var csharpCodeAgent = scope.ServiceProvider.GetRequiredService<ICsharpCodeAgent>();
-                            result = await csharpCodeAgent.DoCall(agentToCallModel, parameters);
+                            result = await csharpCodeAgent.DoCallWrapper(agentToCallModel, parameters);
                         }
                         else if (agentToCallModel.Type == AgentType.PythonCode)
                         {
                             var pythonCodeAgent = scope.ServiceProvider.GetRequiredService<IPythonCodeAgent>();
-                            result = await pythonCodeAgent.DoCall(agentToCallModel, parameters);
+                            result = await pythonCodeAgent.DoCallWrapper(agentToCallModel, parameters);
                         }
                         schedulerAgentTaskModel.Result = HttpUtility.HtmlDecode(result);
                         schedulerAgentTaskModel.SchedulerAgentTaskState = SchedulerAgentTaskState.Completed;

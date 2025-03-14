@@ -23,20 +23,19 @@ namespace AiCoreApi.SemanticKernel.Agents
         private readonly ResponseAccessor _responseAccessor;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IConnectionProcessor _connectionProcessor;
-        private readonly ILogger<AzureAiSpeechCreateSpeechAgent> _logger;
 
         public AzureAiSpeechCreateSpeechAgent(
             RequestAccessor requestAccessor,
             ResponseAccessor responseAccessor,
             IHttpClientFactory httpClientFactory,
             IConnectionProcessor connectionProcessor,
-            ILogger<AzureAiSpeechCreateSpeechAgent> logger)
+            ExtendedConfig extendedConfig,
+            ILogger<AzureAiSpeechCreateSpeechAgent> logger) : base(requestAccessor, extendedConfig, logger)
         {
             _requestAccessor = requestAccessor;
             _responseAccessor = responseAccessor;
             _httpClientFactory = httpClientFactory;
             _connectionProcessor = connectionProcessor;
-            _logger = logger;
         }
 
         public override async Task<string> DoCall(
@@ -131,9 +130,6 @@ namespace AiCoreApi.SemanticKernel.Agents
                 Name = "audio" + (quality.Contains("mp3") ? ".mp3" : ".wav"),
                 Size = bytes.Length
             });
-
-            _logger.LogInformation("{Login}, Action:{Action}, Quality: {Quality}, Voice: {Voice}",
-                _requestAccessor.Login, "AzureAiSpeechCreateSpeech", quality, voice);
             return result;
         }
 

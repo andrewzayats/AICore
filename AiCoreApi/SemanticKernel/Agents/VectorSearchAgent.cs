@@ -31,7 +31,6 @@ namespace AiCoreApi.SemanticKernel.Agents
         private readonly IConnectionProcessor _connectionProcessor;
         private readonly ILoginProcessor _loginProcessor;
         private readonly IFeatureFlags _featureFlags;
-        private readonly ILogger<VectorSearchAgent> _logger;
 
         public VectorSearchAgent(
             RequestAccessor requestAccessor,
@@ -41,7 +40,8 @@ namespace AiCoreApi.SemanticKernel.Agents
             IConnectionProcessor connectionProcessor,
             ILoginProcessor loginProcessor,
             IFeatureFlags featureFlags,
-            ILogger<VectorSearchAgent> logger)
+            ExtendedConfig extendedConfig,
+            ILogger<VectorSearchAgent> logger) : base(requestAccessor, extendedConfig, logger)
         {
             _requestAccessor = requestAccessor;
             _responseAccessor = responseAccessor;
@@ -50,7 +50,6 @@ namespace AiCoreApi.SemanticKernel.Agents
             _connectionProcessor = connectionProcessor;
             _loginProcessor = loginProcessor;
             _featureFlags = featureFlags;
-            _logger = logger;
         }
 
         public override async Task<string> DoCall(
@@ -76,8 +75,6 @@ namespace AiCoreApi.SemanticKernel.Agents
                     ? agent.Content[AgentContentParameters.MaxResultsCount].Value
                     : "-1");
 
-            _logger.LogInformation("{Login}, Action:{Action}, ConnectionName: {ConnectionName}",
-                _requestAccessor.Login, "VectorSearch", vectorDbConnectionName);
             return await Search(queryString, maxResultsCount, minRelevance,  tags, embeddingConnectionName, vectorDbConnectionName, agent.LlmType);
         }
 

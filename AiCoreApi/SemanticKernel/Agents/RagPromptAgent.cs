@@ -30,8 +30,7 @@ namespace AiCoreApi.SemanticKernel.Agents
         private readonly IConnectionProcessor _connectionProcessor;
         private readonly ILoginProcessor _loginProcessor;
         private readonly IFeatureFlags _featureFlags;
-        private readonly ExtendedConfig _config;
-        private readonly ILogger<RagPromptAgent> _logger;
+        private readonly ExtendedConfig _extendedConfig;
 
         public RagPromptAgent(
             RequestAccessor requestAccessor,
@@ -41,8 +40,8 @@ namespace AiCoreApi.SemanticKernel.Agents
             IConnectionProcessor connectionProcessor,
             ILoginProcessor loginProcessor,
             IFeatureFlags featureFlags,
-            ExtendedConfig config,
-            ILogger<RagPromptAgent> logger)
+            ExtendedConfig extendedConfig,
+            ILogger<RagPromptAgent> logger) : base(requestAccessor, extendedConfig, logger)
         {
             _requestAccessor = requestAccessor;
             _responseAccessor = responseAccessor;
@@ -51,8 +50,7 @@ namespace AiCoreApi.SemanticKernel.Agents
             _connectionProcessor = connectionProcessor;
             _loginProcessor = loginProcessor;
             _featureFlags = featureFlags;
-            _config = config;
-            _logger = logger;
+            _extendedConfig = extendedConfig;
         }
 
         public override async Task<string> DoCall(
@@ -104,8 +102,8 @@ namespace AiCoreApi.SemanticKernel.Agents
             var kernelMemory = _kernelMemoryProvider.GetKernelMemory(llmConnection, embeddingConnection, vectorDbConnection);
             if(filters.Count == 0 && _featureFlags.IsEnabled(FeatureFlags.Names.Tagging))
             {
-                _responseAccessor.AddDebugMessage(DebugMessageSenderName, "DoCall Response", $"{_config.NoInformationFoundText} (filters)");
-                return _config.NoInformationFoundText;
+                _responseAccessor.AddDebugMessage(DebugMessageSenderName, "DoCall Response", $"{_extendedConfig.NoInformationFoundText} (filters)");
+                return _extendedConfig.NoInformationFoundText;
             }
 
             var answer = await kernelMemory.AskAsync(question, minRelevance: minRelevance,
@@ -113,8 +111,8 @@ namespace AiCoreApi.SemanticKernel.Agents
                 filters: _featureFlags.IsEnabled(FeatureFlags.Names.Tagging) ? filters : null);
             if (answer.NoResult)
             {
-                _responseAccessor.AddDebugMessage(DebugMessageSenderName, "DoCall Response", _config.NoInformationFoundText);
-                return _config.NoInformationFoundText;
+                _responseAccessor.AddDebugMessage(DebugMessageSenderName, "DoCall Response", _extendedConfig.NoInformationFoundText);
+                return _extendedConfig.NoInformationFoundText;
             }
             _responseAccessor.CurrentMessage.Text = answer.Result;
             _responseAccessor.CurrentMessage.Sources = answer.RelevantSources.Select(s =>
@@ -139,9 +137,6 @@ namespace AiCoreApi.SemanticKernel.Agents
                 .Select(x => x.First())
                 .ToList();
             _responseAccessor.AddDebugMessage(DebugMessageSenderName, "DoCall Response", _responseAccessor.CurrentMessage.Text);
-
-            _logger.LogInformation("{Login}, Action:{Action}, ConnectionName: {ConnectionName}",
-                _requestAccessor.Login, "RagPrompt", llmConnection.Name);
             return _responseAccessor.CurrentMessage.Text;
         }
     }

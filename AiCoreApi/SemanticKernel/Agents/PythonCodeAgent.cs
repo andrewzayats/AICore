@@ -36,19 +36,25 @@ namespace AiCoreApi.SemanticKernel.Agents
         private readonly RequestAccessor _requestAccessor;
         private readonly ResponseAccessor _responseAccessor;
         private readonly ICacheAccessor _cacheAccessor;
+        private readonly ILogger<PythonCodeAgent> _logger;
 
         public PythonCodeAgent(
             IPlannerHelpers plannerHelpers,
             RequestAccessor requestAccessor,
             ResponseAccessor responseAccessor,
-            ICacheAccessor cacheAccessor)
+            ICacheAccessor cacheAccessor, 
+            ExtendedConfig extendedConfig,
+            ILogger<PythonCodeAgent> logger) : base(requestAccessor, extendedConfig, logger)
         {
             _plannerHelpers = plannerHelpers;
             _requestAccessor = requestAccessor;
             _responseAccessor = responseAccessor;
             _cacheAccessor = cacheAccessor;
             _cacheAccessor.KeyPrefix = "AgentExecution-";
+            _logger = logger;
         }
+
+        public async Task<string> DoCallWrapper(AgentModel agent, Dictionary<string, string> parameters) => await base.DoCallWrapper(agent, parameters);
 
         public override async Task<string> DoCall(
             AgentModel agent, 
@@ -91,9 +97,17 @@ namespace AiCoreApi.SemanticKernel.Agents
                             scope.Import(lib);
                         }
 
+                        builtIns.LogCritical = new Action<string>(LogCritical);
+                        builtIns.LogError = new Action<string>(LogError);
+                        builtIns.LogWarning = new Action<string>(LogWarning);
+                        builtIns.LogDebug = new Action<string>(LogDebug);
+                        builtIns.LogInformation = new Action<string>(LogInformation);
+                        builtIns.LogTrace = new Action<string>(LogTrace);
+
                         builtIns.ExecuteAgent = new Func<string, string[]?, string>(ExecuteAgent);
                         builtIns.GetCacheValue = new Func<string, string>(_cacheAccessor.GetCacheValue);
                         builtIns.SetCacheValue = new Func<string, string, int, string>(_cacheAccessor.SetCacheValue);
+                        builtIns.Log = new Func<string, string[]?, string>(ExecuteAgent);
                         PyObject requestAccessorPy = _requestAccessor.ToPython();
                         PyObject responseAccessorPy = _responseAccessor.ToPython();
                         PyObject parametersPy = parameters.ToPython();
@@ -163,6 +177,13 @@ namespace AiCoreApi.SemanticKernel.Agents
             }
         }
 
+        private void LogCritical(string text) => _logger.LogCritical(text);
+        private void LogError(string text) => _logger.LogError(text);
+        private void LogWarning(string text) => _logger.LogWarning(text);
+        private void LogDebug(string text) => _logger.LogDebug(text);
+        private void LogInformation(string text) => _logger.LogInformation(text);
+        private void LogTrace(string text) => _logger.LogTrace(text);
+
         private string ExecuteAgent(string agentName, string[] parameters = null)
         {
             _plannerHelpers.PythonCodeAgent = this;
@@ -182,6 +203,6 @@ namespace AiCoreApi.SemanticKernel.Agents
     public interface IPythonCodeAgent
     {
         Task AddAgent(AgentModel agent, Kernel kernel, List<string> pluginsInstructions);
-        Task<string> DoCall(AgentModel agent, Dictionary<string, string> parameters);
+        Task<string> DoCallWrapper(AgentModel agent, Dictionary<string, string> parameters);
     }
 }

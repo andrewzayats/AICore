@@ -28,20 +28,19 @@ namespace AiCoreApi.SemanticKernel.Agents
         private readonly RequestAccessor _requestAccessor;
         private readonly ResponseAccessor _responseAccessor;
         private readonly IHttpClientFactory _httpClientFactory;
-        private readonly ILogger<WhisperAgent> _logger;
 
         public WhisperAgent(
             IConnectionProcessor connectionProcessor,
             RequestAccessor requestAccessor,
             ResponseAccessor responseAccessor,
             IHttpClientFactory httpClientFactory,
-            ILogger<WhisperAgent> logger)
+            ExtendedConfig extendedConfig,
+            ILogger<WhisperAgent> logger) : base(requestAccessor, extendedConfig, logger)
         {
             _connectionProcessor = connectionProcessor;
             _requestAccessor = requestAccessor;
             _responseAccessor = responseAccessor;
             _httpClientFactory = httpClientFactory;
-            _logger = logger;
         }
 
         public override async Task<string> DoCall(
@@ -88,9 +87,6 @@ namespace AiCoreApi.SemanticKernel.Agents
             var recognizedText = responseContent.JsonGet<string>("text") ?? string.Empty;
 
             _responseAccessor.AddDebugMessage(DebugMessageSenderName, "DoCall Response", recognizedText);
-
-            _logger.LogInformation("{Login}, Action:{Action}, ConnectionName: {ConnectionName}",
-                _requestAccessor.Login, "Whisper", connection.Name);
             return recognizedText ?? "";
         }
     }

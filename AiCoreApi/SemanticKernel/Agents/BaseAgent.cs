@@ -8,6 +8,20 @@ namespace AiCoreApi.SemanticKernel.Agents
 {
     public abstract class BaseAgent
     {
+        private readonly RequestAccessor _requestAccessor;
+        private readonly ExtendedConfig _extendedConfig;
+        private readonly ILogger<BaseAgent> _logger;
+
+        protected BaseAgent(
+            RequestAccessor requestAccessor,
+            ExtendedConfig extendedConfig,
+            ILogger<BaseAgent> logger)
+        {
+            _requestAccessor = requestAccessor;
+            _extendedConfig = extendedConfig;
+            _logger = logger;
+        }
+
         private static class AgentContentParameters
         {
             public const string ParameterDescription = "parameterDescription";
@@ -61,9 +75,10 @@ namespace AiCoreApi.SemanticKernel.Agents
                     {"parameter8", parameter8},
                     {"parameter9", parameter9}
                 };
-                return await DoCall(agent, parameters);
+                return await DoCallWrapper(agent, parameters);
             }
         }
+
 
         protected string ApplyParameters(string text, Dictionary<string, string>? parameters)
         {
@@ -116,6 +131,23 @@ namespace AiCoreApi.SemanticKernel.Agents
                 startIndex = closeBraceIndex + 2;
             }
             return stringBuilder.ToString();
+        }
+
+        public async Task<string> DoCallWrapper(AgentModel agent, Dictionary<string, string> parameters)
+        {
+            if (_extendedConfig.LogAgentRun)
+            {
+                var parametersString = _extendedConfig.LogAgentPii
+                    ? string.Join(", ", parameters.Select(p => $"{p.Key}: {p.Value}"))
+                    : "[PII]";
+                _logger.LogCritical("[Run] {Login}, Action:{Action}, Agent: {Agent}, Parameters: {url}", _requestAccessor.Login, "ApiCall", agent.Name, parametersString);
+            }
+            var result = await DoCall(agent, parameters);
+
+            if (_extendedConfig.LogAgentResult)
+                _logger.LogCritical("[Result] {Login}, Action:{Action}, Agent: {Agent}, Result: {url}", _requestAccessor.Login, "ApiCall", agent.Name,
+                    _extendedConfig.LogAgentPii ? result : "[PII]");
+            return result;
         }
 
         public abstract Task<string> DoCall(AgentModel agent, Dictionary<string, string> parameters);

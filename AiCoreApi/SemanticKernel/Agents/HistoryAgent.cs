@@ -17,7 +17,9 @@ namespace AiCoreApi.SemanticKernel.Agents
 
         public HistoryAgent(
             RequestAccessor requestAccessor,
-            ResponseAccessor responseAccessor)
+            ResponseAccessor responseAccessor,
+            ExtendedConfig extendedConfig,
+            ILogger<HistoryAgent> logger) : base(requestAccessor, extendedConfig, logger)
         {
             _requestAccessor = requestAccessor;
             _responseAccessor = responseAccessor;

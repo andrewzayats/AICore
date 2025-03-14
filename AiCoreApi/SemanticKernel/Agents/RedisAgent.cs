@@ -28,7 +28,9 @@ namespace AiCoreApi.SemanticKernel.Agents
         public RedisAgent(
             IConnectionProcessor connectionProcessor,
             RequestAccessor requestAccessor,
-            ResponseAccessor responseAccessor)
+            ResponseAccessor responseAccessor,
+            ExtendedConfig extendedConfig,
+            ILogger<RedisAgent> logger) : base(requestAccessor, extendedConfig, logger)
         {
             _connectionProcessor = connectionProcessor;
             _requestAccessor = requestAccessor;

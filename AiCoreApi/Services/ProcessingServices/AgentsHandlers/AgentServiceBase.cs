@@ -78,17 +78,17 @@ namespace AiCoreApi.Services.ProcessingServices.AgentsHandlers
                     if (agentToCallModel.Type == AgentType.Composite)
                     {
                         var compositeAgent = scope.ServiceProvider.GetRequiredService<ICompositeAgent>();
-                        result = await compositeAgent.DoCall(agentToCallModel, parametersValues, scope.ServiceProvider);
+                        result = await compositeAgent.DoCallWrapper(agentToCallModel, parametersValues);
                     }
                     else if (agentToCallModel.Type == AgentType.CsharpCode)
                     {
                         var csharpCodeAgent = scope.ServiceProvider.GetRequiredService<ICsharpCodeAgent>();
-                        result = await csharpCodeAgent.DoCall(agentToCallModel, parametersValues);
+                        result = await csharpCodeAgent.DoCallWrapper(agentToCallModel, parametersValues);
                     }
                     else if (agentToCallModel.Type == AgentType.PythonCode)
                     {
                         var pythonCodeAgent = scope.ServiceProvider.GetRequiredService<IPythonCodeAgent>();
-                        result = await pythonCodeAgent.DoCall(agentToCallModel, parametersValues);
+                        result = await pythonCodeAgent.DoCallWrapper(agentToCallModel, parametersValues);
                     }
 
                     if (_extendedConfig.AllowDebugMode && _extendedConfig.DebugMessagesStorageEnabled)

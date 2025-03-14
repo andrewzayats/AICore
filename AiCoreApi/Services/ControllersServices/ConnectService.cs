@@ -2,7 +2,6 @@
 using AiCoreApi.Common;
 using AiCoreApi.Data.Processors;
 using AiCoreApi.Models.ViewModels;
-using AutoMapper;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -15,7 +14,6 @@ namespace AiCoreApi.Services.ControllersServices
 {
     public class ConnectService : IConnectService
     {
-        private readonly IMapper _mapper;
         private readonly ILoginProcessor _loginProcessor;
         private readonly ILoginHistoryProcessor _loginHistoryProcessor;
         private readonly IClientSsoProcessor _clientSsoProcessor;
@@ -23,10 +21,10 @@ namespace AiCoreApi.Services.ControllersServices
         private readonly IGroupsProcessor _groupsProcessor;
         private readonly IRbacGroupSyncProcessor _rbacGroupSyncProcessor;
         private readonly IRbacRoleSyncProcessor _rbacRoleSyncProcessor;
+        private readonly ILogger<ConnectService> _logger;
         private readonly ExtendedConfig _config;
 
         public ConnectService(
-            IMapper mapper,
             ILoginProcessor loginProcessor,
             ILoginHistoryProcessor loginHistoryProcessor,
             IClientSsoProcessor clientSsoProcessor,
@@ -34,9 +32,9 @@ namespace AiCoreApi.Services.ControllersServices
             IGroupsProcessor groupsProcessor,
             IRbacGroupSyncProcessor rbacGroupSyncProcessor,
             IRbacRoleSyncProcessor rbacRoleSyncProcessor,
+            ILogger<ConnectService> logger,
             ExtendedConfig config)
         {
-            _mapper = mapper;
             _loginProcessor = loginProcessor;
             _loginHistoryProcessor = loginHistoryProcessor;
             _clientSsoProcessor = clientSsoProcessor;
@@ -44,6 +42,7 @@ namespace AiCoreApi.Services.ControllersServices
             _groupsProcessor = groupsProcessor;
             _rbacGroupSyncProcessor = rbacGroupSyncProcessor;
             _rbacRoleSyncProcessor = rbacRoleSyncProcessor;
+            _logger = logger;
             _config = config;
         }
 
@@ -264,6 +263,9 @@ namespace AiCoreApi.Services.ControllersServices
             var accessToken = CreateAccessToken(login, now);
             var idToken = CreateIdToken(login, now, loginHistory, accessToken);
 
+            if (_config.LogLoginLogout)
+                _logger.LogCritical($"User Login: {loginHistory.Login}, Session id: {loginHistory.LoginHistoryId}");
+
             return new TokenModel
             {
                 AccessToken = accessToken,
@@ -319,6 +321,9 @@ namespace AiCoreApi.Services.ControllersServices
             if (loginName == null || loginTypeString == null || !Enum.TryParse(loginTypeString, out LoginTypeEnum loginType))
                 return null;
             var login = await _loginProcessor.GetByLogin(loginName, loginType);
+
+            if (_config.LogAccessTokenCheck)
+                _logger.LogCritical($"User Access Token Check: {loginName}");
             return login;
         }
 
@@ -357,6 +362,8 @@ namespace AiCoreApi.Services.ControllersServices
                 return;
             loginHistory.ValidUntilTime = DateTime.UtcNow;
             _loginHistoryProcessor.Update(loginHistory);
+            if(_config.LogLoginLogout)
+                _logger.LogCritical($"User Logout: {loginHistory.Login}, Session id: {sessionId}");
         }
     }
 

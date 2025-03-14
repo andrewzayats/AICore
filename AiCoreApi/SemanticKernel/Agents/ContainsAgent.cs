@@ -12,7 +12,10 @@ namespace AiCoreApi.SemanticKernel.Agents
 
         private readonly ResponseAccessor _responseAccessor;
         public ContainsAgent(
-            ResponseAccessor responseAccessor)
+            RequestAccessor requestAccessor,
+            ResponseAccessor responseAccessor,
+            ExtendedConfig extendedConfig,
+            ILogger<ContainsAgent> logger) : base(requestAccessor, extendedConfig, logger)
         {
             _responseAccessor = responseAccessor;
         }

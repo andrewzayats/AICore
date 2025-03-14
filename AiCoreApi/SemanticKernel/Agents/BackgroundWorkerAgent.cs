@@ -25,7 +25,9 @@ namespace AiCoreApi.SemanticKernel.Agents
             ISchedulerAgentTaskProcessor schedulerAgentTaskProcessor,
             UserContextAccessor userContextAccessor,
             ResponseAccessor responseAccessor,
-            RequestAccessor requestAccessor)
+            RequestAccessor requestAccessor,
+            ExtendedConfig extendedConfig,
+            ILogger<BackgroundWorkerAgent> logger) : base(requestAccessor, extendedConfig, logger)
         {
             _schedulerAgentTaskProcessor = schedulerAgentTaskProcessor;
             _userContextAccessor = userContextAccessor;
