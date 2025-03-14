@@ -26,20 +26,19 @@ namespace AiCoreApi.SemanticKernel.Agents
         private readonly RequestAccessor _requestAccessor;
         private readonly ResponseAccessor _responseAccessor;
         private readonly IConnectionProcessor _connectionProcessor;
-        private readonly ILogger<ContentSafetyAgent> _logger;
 
         public ContentSafetyAgent(
             IConnectionProcessor connectionProcessor,
             IHttpClientFactory httpClientFactory, 
             ResponseAccessor responseAccessor,
             RequestAccessor requestAccessor,
-            ILogger<ContentSafetyAgent> logger)
+            ExtendedConfig extendedConfig,
+            ILogger<ContentSafetyAgent> logger) : base(requestAccessor, extendedConfig, logger)
         {
             _connectionProcessor = connectionProcessor;
             _httpClientFactory = httpClientFactory;
             _responseAccessor = responseAccessor;
             _requestAccessor = requestAccessor;
-            _logger = logger;
         }
 
         public override async Task<string> DoCall(AgentModel agent, Dictionary<string, string> parameters)
@@ -117,8 +116,6 @@ namespace AiCoreApi.SemanticKernel.Agents
                 ? "True"
                 : $"False: {string.Join(", ", foundContentSafetyIssues)}";
             _responseAccessor.AddDebugMessage(DebugMessageSenderName, "DoCall Response", result);
-            _logger.LogInformation("{Login}, Action:{Action}, ConnectionName: {ConnectionName}",
-                _requestAccessor.Login, "ContentSafety", connectionName);
             return result;
         }
 

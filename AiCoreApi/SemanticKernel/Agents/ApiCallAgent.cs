@@ -22,21 +22,18 @@ namespace AiCoreApi.SemanticKernel.Agents
             public const string CustomHeaderValue = "customHeaderValue";
         }
 
-        private readonly ILogger<ApiCallAgent> _logger;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ResponseAccessor _responseAccessor;
-        private readonly RequestAccessor _requestAccessor;
 
         public ApiCallAgent(
             ILogger<ApiCallAgent> logger,
+            ExtendedConfig extendedConfig,
             IHttpClientFactory httpClientFactory, 
             ResponseAccessor responseAccessor,
-            RequestAccessor requestAccessor)
+            RequestAccessor requestAccessor) : base(requestAccessor, extendedConfig, logger)
         {
-            _logger = logger;
             _httpClientFactory = httpClientFactory;
             _responseAccessor = responseAccessor;
-            _requestAccessor = requestAccessor;
         }
 
         public override async Task<string> DoCall(AgentModel agent, Dictionary<string, string> parameters)
@@ -64,9 +61,6 @@ namespace AiCoreApi.SemanticKernel.Agents
             response.EnsureSuccessStatusCode();
             var responseBody = await response.Content.ReadAsStringAsync();
             _responseAccessor.AddDebugMessage(DebugMessageSenderName, "DoCall Response", responseBody);
-
-            _logger.LogInformation("{Login}, Action:{Action}, Agent: {Agent}, Url: {url}",
-                _requestAccessor.Login, "ApiCall", agent.Name, url);
             return responseBody;
         }
 

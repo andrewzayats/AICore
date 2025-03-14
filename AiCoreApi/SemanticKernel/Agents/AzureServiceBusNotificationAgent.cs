@@ -26,7 +26,9 @@ namespace AiCoreApi.SemanticKernel.Agents
         public AzureServiceBusNotificationAgent(
             IConnectionProcessor connectionProcessor,
             RequestAccessor requestAccessor,
-            ResponseAccessor responseAccessor)
+            ResponseAccessor responseAccessor,
+            ExtendedConfig extendedConfig,
+            ILogger<AzureServiceBusNotificationAgent> logger) : base(requestAccessor, extendedConfig, logger)
         {
             _requestAccessor = requestAccessor;
             _responseAccessor = responseAccessor;

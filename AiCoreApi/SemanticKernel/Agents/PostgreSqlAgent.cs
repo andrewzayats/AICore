@@ -25,7 +25,9 @@ namespace AiCoreApi.SemanticKernel.Agents
         public PostgreSqlAgent(
             IConnectionProcessor connectionProcessor,
             RequestAccessor requestAccessor,
-            ResponseAccessor responseAccessor)
+            ResponseAccessor responseAccessor,
+            ExtendedConfig extendedConfig,
+            ILogger<PostgreSqlAgent> logger) : base(requestAccessor, extendedConfig, logger)
         {
             _connectionProcessor = connectionProcessor;
             _requestAccessor = requestAccessor;

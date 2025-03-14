@@ -29,20 +29,19 @@ namespace AiCoreApi.SemanticKernel.Agents
         private readonly RequestAccessor _requestAccessor;
         private readonly ResponseAccessor _responseAccessor;
         private readonly IConnectionProcessor _connectionProcessor;
-        private readonly ILogger<ImageToTextAgent> _logger;
 
         public ImageToTextAgent(
             ISemanticKernelProvider semanticKernelProvider,
             RequestAccessor requestAccessor,
             ResponseAccessor responseAccessor,
             IConnectionProcessor connectionProcessor,
-            ILogger<ImageToTextAgent> logger)
+            ExtendedConfig extendedConfig,
+            ILogger<ImageToTextAgent> logger) : base(requestAccessor, extendedConfig, logger)
         {
             _semanticKernelProvider = semanticKernelProvider;
             _requestAccessor = requestAccessor;
             _responseAccessor = responseAccessor;
             _connectionProcessor = connectionProcessor;
-            _logger = logger;
         }
 
         public override async Task<string> DoCall(
@@ -89,8 +88,6 @@ namespace AiCoreApi.SemanticKernel.Agents
             var result = resultContent.Content ?? "";
 
             _responseAccessor.AddDebugMessage(DebugMessageSenderName, "DoCall Response", result);
-            _logger.LogInformation("{Login}, Action:{Action}, ConnectionName: {ConnectionName}",
-                _requestAccessor.Login, "ImageToText", llmConnection.Name);
             return result;
         }
     }

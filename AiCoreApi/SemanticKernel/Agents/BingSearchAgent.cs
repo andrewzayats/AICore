@@ -29,20 +29,19 @@ namespace AiCoreApi.SemanticKernel.Agents
         private readonly ResponseAccessor _responseAccessor;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IConnectionProcessor _connectionProcessor;
-        private readonly ILogger<BingSearchAgent> _logger;
 
         public BingSearchAgent(
             RequestAccessor requestAccessor,
             ResponseAccessor responseAccessor,
             IHttpClientFactory httpClientFactory,
             IConnectionProcessor connectionProcessor,
-            ILogger<BingSearchAgent> logger)
+            ExtendedConfig extendedConfig,
+            ILogger<BingSearchAgent> logger) : base(requestAccessor, extendedConfig, logger)
         {
             _requestAccessor = requestAccessor;
             _responseAccessor = responseAccessor;
             _httpClientFactory = httpClientFactory;
             _connectionProcessor = connectionProcessor;
-            _logger = logger;
         }
 
         public override async Task<string> DoCall(
@@ -71,8 +70,6 @@ namespace AiCoreApi.SemanticKernel.Agents
             var result = results.ToJson();
 
             _responseAccessor.AddDebugMessage(DebugMessageSenderName, "Execute Query String Result", result);
-            _logger.LogInformation("{Login}, Action:{Action}, ConnectionName: {ConnectionName}",
-                _requestAccessor.Login, "BingSearch", bingConnectionName);
             return result;
         }
 

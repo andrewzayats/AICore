@@ -63,20 +63,19 @@ namespace AiCoreApi.SemanticKernel.Agents
         private readonly ResponseAccessor _responseAccessor;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IConnectionProcessor _connectionProcessor;
-        private readonly ILogger<OcrAgent> _logger;
 
         public OcrAgent(
             RequestAccessor requestAccessor,
             ResponseAccessor responseAccessor,
             IHttpClientFactory httpClientFactory,
             IConnectionProcessor connectionProcessor,
-            ILogger<OcrAgent> logger)
+            ExtendedConfig extendedConfig,
+            ILogger<OcrAgent> logger) : base(requestAccessor, extendedConfig, logger)
         {
             _requestAccessor = requestAccessor;
             _responseAccessor = responseAccessor;
             _httpClientFactory = httpClientFactory;
             _connectionProcessor = connectionProcessor;
-            _logger = logger;
         }
 
         public override async Task<string> DoCall(
@@ -115,8 +114,6 @@ namespace AiCoreApi.SemanticKernel.Agents
             var result = await ProcessFile(endpoint, modelName, apiKey, optionsList, outputList, outputFormat, base64Image.StripBase64());
             _responseAccessor.AddDebugMessage(DebugMessageSenderName, "OCR Processing Result", result);
 
-            _logger.LogInformation("{Login}, Action:{Action}, ConnectionName: {ConnectionName}, Options: {Options}, Output: {Output}",
-                _requestAccessor.Login, "Ocr", connection.Name, string.Join(",", optionsList), string.Join(",", outputList));
             return result;
         }
 

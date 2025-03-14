@@ -26,20 +26,19 @@ namespace AiCoreApi.SemanticKernel.Agents
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ResponseAccessor _responseAccessor;
         private readonly RequestAccessor _requestAccessor;
-        private readonly ILogger<AzureAiTranslatorAgent> _logger;
 
         public AzureAiTranslatorAgent(
             IConnectionProcessor connectionProcessor,
             IHttpClientFactory httpClientFactory,
             ResponseAccessor responseAccessor,
             RequestAccessor requestAccessor,
-            ILogger<AzureAiTranslatorAgent> logger)
+            ExtendedConfig extendedConfig,
+            ILogger<AzureAiTranslatorAgent> logger) : base(requestAccessor, extendedConfig, logger)
         {
             _connectionProcessor = connectionProcessor;
             _httpClientFactory = httpClientFactory;
             _responseAccessor = responseAccessor;
             _requestAccessor = requestAccessor;
-            _logger = logger;
         }
 
         public override async Task<string> DoCall(AgentModel agent, Dictionary<string, string> parameters)
@@ -71,8 +70,6 @@ namespace AiCoreApi.SemanticKernel.Agents
             using var document = JsonDocument.Parse(jsonResponse);
             var translation = document.RootElement[0].GetProperty("translations")[0].GetProperty("text").GetString();
             _responseAccessor.AddDebugMessage(DebugMessageSenderName, "DoCall Response", translation);
-            _logger.LogInformation("{Login}, Action:{Action}, ConnectionName: {ConnectionName}, From: {From}, To: {To}",
-                _requestAccessor.Login, "AzureAiTranslator", connectionName, fromLanguage, toLanguage);
             return translation;
         }
     }

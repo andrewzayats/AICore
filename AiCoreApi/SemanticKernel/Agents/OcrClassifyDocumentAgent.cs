@@ -7,7 +7,6 @@ using System.Web;
 using Azure;
 using Azure.AI.DocumentIntelligence;
 using Azure.Core.Pipeline;
-using Newtonsoft.Json;
 
 namespace AiCoreApi.SemanticKernel.Agents
 {
@@ -34,20 +33,19 @@ namespace AiCoreApi.SemanticKernel.Agents
         private readonly ResponseAccessor _responseAccessor;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IConnectionProcessor _connectionProcessor;
-        private readonly ILogger<OcrClassifyDocumentAgent> _logger;
 
         public OcrClassifyDocumentAgent(
             RequestAccessor requestAccessor,
             ResponseAccessor responseAccessor,
             IHttpClientFactory httpClientFactory,
             IConnectionProcessor connectionProcessor,
-            ILogger<OcrClassifyDocumentAgent> logger)
+            ExtendedConfig extendedConfig,
+            ILogger<OcrClassifyDocumentAgent> logger) : base(requestAccessor, extendedConfig, logger)
         {
             _requestAccessor = requestAccessor;
             _responseAccessor = responseAccessor;
             _httpClientFactory = httpClientFactory;
             _connectionProcessor = connectionProcessor;
-            _logger = logger;
         }
 
         public override async Task<string> DoCall(
@@ -97,8 +95,6 @@ namespace AiCoreApi.SemanticKernel.Agents
 
             _responseAccessor.AddDebugMessage(DebugMessageSenderName, "OCR Classifying Result", result);
 
-            _logger.LogInformation("{Login}, Action:{Action}, ConnectionName: {ConnectionName}, ClassifierID: {ClassifierID}, StringIndexType: {StringIndexType}, SplitMode: {SplitMode}, Pages: {Pages}",
-                _requestAccessor.Login, "Ocr Classifying", connection.Name, classifierId, stringIndexType, splitMode, pages);
             return result;
         }
 

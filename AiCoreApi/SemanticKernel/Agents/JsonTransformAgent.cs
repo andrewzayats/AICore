@@ -14,7 +14,10 @@ namespace AiCoreApi.SemanticKernel.Agents
 
         private readonly ResponseAccessor _responseAccessor;
         public JsonTransformAgent(
-            ResponseAccessor responseAccessor)
+            ResponseAccessor responseAccessor,
+            RequestAccessor requestAccessor,
+            ExtendedConfig extendedConfig,
+            ILogger<JsonTransformAgent> logger) : base(requestAccessor, extendedConfig, logger)
         {
             _responseAccessor = responseAccessor;
         }

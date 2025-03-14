@@ -24,7 +24,9 @@ namespace AiCoreApi.SemanticKernel.Agents
 
         public IronPythonCodeAgent(
             RequestAccessor requestAccessor,
-            ResponseAccessor responseAccessor)
+            ResponseAccessor responseAccessor,
+            ExtendedConfig extendedConfig,
+            ILogger<IronPythonCodeAgent> logger) : base(requestAccessor, extendedConfig, logger)
         {
             _requestAccessor = requestAccessor;
             _responseAccessor = responseAccessor;

@@ -32,7 +32,8 @@ namespace AiCoreApi.SemanticKernel.Agents
             ResponseAccessor responseAccessor,
             RequestAccessor requestAccessor,
             IPlannerHelpers plannerHelpers,
-            ISemanticKernelProvider semanticKernelProvider)
+            ILogger<CompositeAgent> logger,
+            ISemanticKernelProvider semanticKernelProvider) : base(requestAccessor, extendedConfig, logger)
         {
             _connectionProcessor = connectionProcessor;
             _extendedConfig = extendedConfig;
@@ -42,10 +43,9 @@ namespace AiCoreApi.SemanticKernel.Agents
             _semanticKernelProvider = semanticKernelProvider;
         }
 
-        public override async Task<string> DoCall(AgentModel agent, Dictionary<string, string> parameters)
-            => await DoCall(agent, parameters, null);
+        public async Task<string> DoCallWrapper(AgentModel agent, Dictionary<string, string> parameters) => await base.DoCallWrapper(agent, parameters);
 
-        public async Task<string> DoCall(AgentModel agent, Dictionary<string, string> parameters, IServiceProvider? serviceProvider)
+        public override async Task<string> DoCall(AgentModel agent, Dictionary<string, string> parameters)
         {
             parameters.ToList().ForEach(p => parameters[p.Key] = HttpUtility.HtmlDecode(p.Value));
 
@@ -130,6 +130,6 @@ namespace AiCoreApi.SemanticKernel.Agents
     public interface ICompositeAgent
     {
         Task AddAgent(AgentModel agent, Kernel kernel, List<string> pluginsInstructions);
-        Task<string> DoCall(AgentModel agent, Dictionary<string, string> parameters, IServiceProvider? serviceProvider);
+        Task<string> DoCallWrapper(AgentModel agent, Dictionary<string, string> parameters);
     }
 }

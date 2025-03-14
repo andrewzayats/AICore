@@ -33,20 +33,19 @@ namespace AiCoreApi.SemanticKernel.Agents
         private readonly IConnectionProcessor _connectionProcessor;
         private readonly RequestAccessor _requestAccessor;
         private readonly ResponseAccessor _responseAccessor;
-        private readonly ILogger<PromptAgent> _logger;
 
         public PromptAgent(
             ISemanticKernelProvider semanticKernelProvider,
             IConnectionProcessor connectionProcessor,
             RequestAccessor requestAccessor,
             ResponseAccessor responseAccessor,
-            ILogger<PromptAgent> logger)
+            ExtendedConfig extendedConfig,
+            ILogger<PromptAgent> logger) : base(requestAccessor, extendedConfig, logger)
         {
             _semanticKernelProvider = semanticKernelProvider;
             _connectionProcessor = connectionProcessor;
             _requestAccessor = requestAccessor;
             _responseAccessor = responseAccessor;
-            _logger = logger;
         }
 
         public override async Task<string> DoCall(
@@ -101,8 +100,6 @@ namespace AiCoreApi.SemanticKernel.Agents
             var resultContent = await chat.GetChatMessageContentAsync(history, executionSettings);
             var result = resultContent.Content ?? "";
             _responseAccessor.AddDebugMessage(DebugMessageSenderName, "DoCall Response", result);
-            _logger.LogInformation("{Login}, Action:{Action}, ConnectionName: {ConnectionName}, Incoming Text Length: {Incoming}, Outgoing Text Length: {Outgoing}",
-                _requestAccessor.Login, "Prompt", llmConnection.Name, templateText.Length, result.Length);
             return result;
         }
 
