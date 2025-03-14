@@ -140,12 +140,12 @@ namespace AiCoreApi.SemanticKernel.Agents
                 var parametersString = _extendedConfig.LogAgentPii
                     ? string.Join(", ", parameters.Select(p => $"{p.Key}: {p.Value}"))
                     : "[PII]";
-                _logger.LogCritical("[Run] {Login}, Action:{Action}, Agent: {Agent}, Parameters: {url}", _requestAccessor.Login, "ApiCall", agent.Name, parametersString);
+                _logger.LogCritical("[{DateTime}][Run] {Login}, Action:{Action}, Agent: {Agent}, Parameters: {url}", DateTime.UtcNow.ToString("g"), _requestAccessor.Login, "ApiCall", agent.Name, parametersString);
             }
             var result = await DoCall(agent, parameters);
 
             if (_extendedConfig.LogAgentResult)
-                _logger.LogCritical("[Result] {Login}, Action:{Action}, Agent: {Agent}, Result: {url}", _requestAccessor.Login, "ApiCall", agent.Name,
+                _logger.LogCritical("[{DateTime}][Result] {Login}, Action:{Action}, Agent: {Agent}, Result: {url}", DateTime.UtcNow.ToString("g"), _requestAccessor.Login, "ApiCall", agent.Name,
                     _extendedConfig.LogAgentPii ? result : "[PII]");
             return result;
         }

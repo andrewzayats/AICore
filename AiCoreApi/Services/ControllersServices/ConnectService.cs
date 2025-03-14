@@ -264,7 +264,7 @@ namespace AiCoreApi.Services.ControllersServices
             var idToken = CreateIdToken(login, now, loginHistory, accessToken);
 
             if (_config.LogLoginLogout)
-                _logger.LogCritical($"User Login: {loginHistory.Login}, Session id: {loginHistory.LoginHistoryId}");
+                _logger.LogCritical("[{DateTime}][User Login] Login: {Login}, Session id: {sessionId}", DateTime.UtcNow.ToString("g"), loginHistory.Login, loginHistory.LoginHistoryId);
 
             return new TokenModel
             {
@@ -323,7 +323,7 @@ namespace AiCoreApi.Services.ControllersServices
             var login = await _loginProcessor.GetByLogin(loginName, loginType);
 
             if (_config.LogAccessTokenCheck)
-                _logger.LogCritical($"User Access Token Check: {loginName}");
+                _logger.LogCritical("[{DateTime}]Access Token Check] Login: {Login}", DateTime.UtcNow.ToString("g"), loginName);
             return login;
         }
 
@@ -363,7 +363,7 @@ namespace AiCoreApi.Services.ControllersServices
             loginHistory.ValidUntilTime = DateTime.UtcNow;
             _loginHistoryProcessor.Update(loginHistory);
             if(_config.LogLoginLogout)
-                _logger.LogCritical($"User Logout: {loginHistory.Login}, Session id: {sessionId}");
+                _logger.LogCritical("[{DateTime}][User Logout] Login: {Login}, Session id: {sessionId}", DateTime.UtcNow.ToString("g"), loginHistory.Login, sessionId);
         }
     }
 
