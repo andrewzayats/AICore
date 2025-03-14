@@ -61,5 +61,6 @@ namespace AiCoreApi.Models.DbModels
         RabbitMqNotification = 28,
         RabbitMqListener = 29, 
         AudioPromptAgent = 30,
+        OcrClassifyDocument = 31,
     }
 }
