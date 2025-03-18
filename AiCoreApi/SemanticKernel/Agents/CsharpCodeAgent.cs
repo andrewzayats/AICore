@@ -1,4 +1,4 @@
-using Microsoft.SemanticKernel;
+﻿using Microsoft.SemanticKernel;
 using AiCoreApi.Models.DbModels;
 using System.Web;
 using AiCoreApi.Common;
@@ -147,7 +147,7 @@ namespace AiCoreApi.SemanticKernel.Agents
                 }
                 else if (methodParameters.Length == 7)
                 {
-                    args = new object?[] { parameters, _requestAccessor, _responseAccessor, executeAgent, getCacheValue, setCacheValue, _logger};
+                    args = new object?[] { parameters, _requestAccessor, _responseAccessor, executeAgent, getCacheValue, setCacheValue, _logger };
                 }
                 else
                 {
@@ -169,7 +169,7 @@ namespace AiCoreApi.SemanticKernel.Agents
             }
         }
 
-        // Quick mode � interpret the snippet directly with Roslyn's C# scripting
+        // Quick mode – interpret the snippet directly with Roslyn's C# scripting
         private async Task<string> QuickCall(Dictionary<string, string> parameters, string csharpCode)
         {
             _responseAccessor.AddDebugMessage(DebugMessageSenderName, "Execute C# Code (quick)", csharpCode);
@@ -254,7 +254,7 @@ namespace AiCoreApi.SemanticKernel.Agents
                 throw;
             }
         }
-        
+
         // Extract #r "nuget:PackageName,Version" from code
         private List<(string packageName, string version)> ExtractNuGetDirectives(string code)
         {
@@ -437,7 +437,17 @@ namespace AiCoreApi.SemanticKernel.Agents
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
                 var runtimePath = Path.Combine(tempPath, "runtimes", "linux-x64", "native");
-                Environment.SetEnvironmentVariable("LD_LIBRARY_PATH", runtimePath + ":" + Environment.GetEnvironmentVariable("LD_LIBRARY_PATH"));
+
+                if (!packageName.StartsWith("System.", StringComparison.OrdinalIgnoreCase) &&
+                    !packageName.Contains(".native.System", StringComparison.OrdinalIgnoreCase) &&
+                    !packageName.StartsWith("NETStandard.", StringComparison.OrdinalIgnoreCase))
+                {
+                    var existingPaths = Environment.GetEnvironmentVariable("LD_LIBRARY_PATH")?.Split(':') ?? Array.Empty<string>();
+                    if (!existingPaths.Contains(runtimePath))
+                    {
+                        Environment.SetEnvironmentVariable("LD_LIBRARY_PATH", runtimePath + ":" + string.Join(":", existingPaths));
+                    }
+                }
             }
 
             foreach (var path in nativeLibraries)
@@ -567,13 +577,16 @@ namespace AiCoreApi.SemanticKernel.Agents
 
                 // Add custom references
                 assembliesReferences.AddRange(references);
-                foreach (var reference in assembliesReferences.Distinct())
+                var processedFileNames = new List<string>();
+                foreach (var reference in assembliesReferences)
                 {
-                    if (File.Exists(reference))
+                    var fileName = Path.GetFileName(reference).ToLower();
+                    if (File.Exists(reference) && !processedFileNames.Contains(fileName))
                     {
                         try
                         {
                             loadedReferences.Add(MetadataReference.CreateFromFile(reference));
+                            processedFileNames.Add(fileName);
                         }
                         catch
                         {
@@ -625,16 +638,18 @@ namespace AiCoreApi.SemanticKernel.Agents
                 using var alc = new CustomAssemblyLoadContext();
                 try
                 {
-                    var assembly = alc.LoadFromAssemblyPath(dllPath);
-                    // Distinct by File Name, dispite the path, as the
+                    var loadedAssembly = alc.Assemblies.FirstOrDefault(a => a.Location == dllPath);
+                    var assembly = loadedAssembly ?? alc.LoadFromAssemblyPath(dllPath);
                     if (references != null)
                     {
-                        references = references.GroupBy(Path.GetFileName).Select(g => g.First()).ToList();
+                        var processedFileNames = new List<string>();
                         foreach (var reference in references)
                         {
-                            if (File.Exists(reference) && alc.Assemblies.All(a => a.Location != reference))
+                            var fileName = Path.GetFileName(reference).ToLower();
+                            if (File.Exists(reference) && alc.Assemblies.All(a => a.Location != reference) && !processedFileNames.Contains(fileName))
                             {
                                 alc.LoadFromAssemblyPath(reference);
+                                processedFileNames.Add(fileName);
                             }
                         }
                     }
@@ -652,8 +667,6 @@ namespace AiCoreApi.SemanticKernel.Agents
                 finally
                 {
                     alc.Unload();
-
-                    // Force a couple of GCs to ensure resources are actually reclaimed
                     GC.Collect();
                     GC.WaitForPendingFinalizers();
                     GC.Collect();
