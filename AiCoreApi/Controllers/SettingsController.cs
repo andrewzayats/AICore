@@ -17,23 +17,26 @@ namespace AiCoreApi.Controllers
             _settingsService = settingsService;
         }
 
-        [AdminAuthorize]
         [HttpGet]
+        [AdminAuthorize]
+        [CombinedAuthorize]
         public IActionResult ListAll()
         {
             return Ok(_settingsService.ListAll());
         }
 
-        [AdminAuthorize]
         [HttpPost]
+        [AdminAuthorize]
+        [CombinedAuthorize]
         public IActionResult Save([FromBody] List<SettingsViewModel> settingsViewModels)
         {
             _settingsService.SaveAll(settingsViewModels);
             return Ok();
         }
 
-        [AdminAuthorize]
         [HttpPost("reboot")]
+        [AdminAuthorize]
+        [CombinedAuthorize]
         public IActionResult Reboot()
         {
             _settingsService.Reboot();
