@@ -415,21 +415,40 @@ namespace AiCoreApi.SemanticKernel.Agents
 
             // Extract possible native binaries from runtimes
             var runtimeItems = await packageReader.GetItemsAsync("runtimes", CancellationToken.None);
+            var nativeLibraries = new List<string>();
+
             foreach (var runtimeItem in runtimeItems)
             {
-                // only process items that match our target framework or Any
                 if (!runtimeItem.TargetFramework.Equals(currentFramework) && !runtimeItem.TargetFramework.IsAny)
                     continue;
 
                 foreach (var runtimeFile in runtimeItem.Items.Where(i =>
                      i.Contains("native/") &&
-                     i.Contains($"{runtimeIdentifier}/") &&
+                     (i.Contains("linux-x64") || i.Contains("win-x64") || i.Contains("osx-x64")) &&
                      (i.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)
                       || i.EndsWith(".so", StringComparison.OrdinalIgnoreCase)
                       || i.EndsWith(".dylib", StringComparison.OrdinalIgnoreCase))))
                 {
-                    // Extract the native binary in case the managed DLL has dependencies on it
-                    ExtractFile(packageReader, runtimeFile, tempPath);
+                    var extractedPath = ExtractFile(packageReader, runtimeFile, tempPath);
+                    nativeLibraries.Add(extractedPath);
+                }
+            }
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                var runtimePath = Path.Combine(tempPath, "runtimes", "linux-x64", "native");
+                Environment.SetEnvironmentVariable("LD_LIBRARY_PATH", runtimePath + ":" + Environment.GetEnvironmentVariable("LD_LIBRARY_PATH"));
+            }
+
+            foreach (var path in nativeLibraries)
+            {
+                try
+                {
+                    NativeLibrary.Load(path);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning($"Failed to load native library: {path} - {ex.Message}");
                 }
             }
 
