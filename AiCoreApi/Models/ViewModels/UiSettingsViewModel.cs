@@ -17,6 +17,7 @@
         public bool UseMicrosoftSso { get; set; } = false;
         public bool UseInternalUsers { get; set; } = false;
         public bool DebugMessagesStorageEnabled { get; set; } = false;
+        public bool CollapseFilesSection { get; set; } = false;
         public Dictionary<string, bool> FeatureFlags { get; set; } = new ();
     }
 }

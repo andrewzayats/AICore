@@ -82,6 +82,7 @@ namespace AiCoreApi.Services.ControllersServices
                 UseMicrosoftSso = _extendedConfig.UseMicrosoftSso,
                 UseInternalUsers = _extendedConfig.UseInternalUsers,
                 DebugMessagesStorageEnabled = _extendedConfig.DebugMessagesStorageEnabled,
+                CollapseFilesSection = _extendedConfig.CollapseFilesSection,
                 FeatureFlags = _featureFlags.GetValues()
             };
         }
