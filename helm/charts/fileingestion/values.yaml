@@ -3,3 +3,6 @@ service:
   containerPort: 7880
 qdrant:
   containerPort: 6333
+  storage:
+    size: 5Gi
+    storageClassName: managed-csi

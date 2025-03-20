@@ -12,8 +12,6 @@ data:
   ENVNAME: "{{ .Values.global.environment.name }}"
   Logging__LogLevel__Default: "{{ .Values.global.app.logLevel }}"
 
-  PRODUCTVERSION: "1.10"
-
   {{- if eq .Values.postgres.internal "True" }}
   DBSERVER: "{{ .Values.global.environment.name }}-aicore-postgres-loadbalancer"
   {{- else }}

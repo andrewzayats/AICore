@@ -32,7 +32,7 @@ spec:
         name: "{{ .Values.global.environment.name }}-aicore-qdrant-disk"
       spec:
         accessModes: ["ReadWriteOnce"]
-        storageClassName: "managed-csi"
+        storageClassName: "{{ .Values.qdrant.storage.storageClassName }}"
         resources:
           requests:
-            storage: "5Gi"
+            storage: "{{ .Values.qdrant.storage.size }}"
