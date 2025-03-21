@@ -90,6 +90,12 @@ public class ExtendedConfig
     [Tooltip("The Planner prompt serves as a template for the root Planner, providing it with instructions for LLM on how to generate a plan of action for the Agents to accomplish the desired outcome. This prompt can incorporate various placeholders: {{currentQuestion}}: The last message exchanged in the Chat dialog. {{pluginsInstructions}}: A combined text derived from the Plugins Instructions sections of all Agents. {{hasFiles}}: A boolean value indicating whether any files were attached to the last message. {{filesNames}}: A list containing the names of all files attached to the last message. {{filesData}}: The parsed text content of all files attached to the last message. It's important to note that not all placeholders may be necessary for every Planner prompt.")]
     public string PlannerPrompt => GetValue<string>("PlannerPrompt", PlannerHelpers.PlannerPromptPlaceholders.PluginsInstructionsPlaceholder);
 
+    [Category(CategoryAttribute.ConfigCategoryEnum.Common)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Boolean)]
+    [Description("Collapse files section by default")]
+    [Tooltip("Specifies if the Files section should be collapsed by default. When enabled, the Files section is collapsed by default, requiring the user to manually expand it.")]
+    public bool CollapseFilesSection => GetValue<bool>("CollapseFilesSection", true);
+
     [Category(CategoryAttribute.ConfigCategoryEnum.Ingestion)]
     [DataType(DataTypeAttribute.ConfigDataTypeEnum.Int)]
     [Description("Ingestion delay in hours")]
