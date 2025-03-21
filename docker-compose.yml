@@ -4,7 +4,6 @@ services:
     restart: always
     container_name: ai-core-api
     environment:
-      - PRODUCTVERSION=1.11
       - ASPNETCORE_URLS=http://+:80
       - AUTOCOMPACTLARGEOBJECTHEAP=true  
       - DBSERVER=host.docker.internal
