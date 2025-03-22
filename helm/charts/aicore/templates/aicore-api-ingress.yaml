@@ -3,6 +3,9 @@ kind: Ingress
 metadata:
   namespace: {{ .Values.global.environment.namespace }}
   name: "{{ .Values.global.environment.name }}-aicore-api-ingress"
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    acme.cert-manager.io/http01-edit-in-place: "true"
 spec:
   ingressClassName: traefik
   tls:
