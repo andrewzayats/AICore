@@ -18,6 +18,7 @@ namespace AiCoreApi.Controllers
         private readonly Config _config;
         private readonly ExtendedConfig _extendedConfig;
         private readonly IMicrosoftSso _microsoftSso;
+        private readonly IGoogleSso _googleSso;
         private readonly IDistributedCache _distributedCache;
         private const int SsoSessionTimeoutMinutes = 5;
         private const string PermanentAcrValue = "permanent";
@@ -27,14 +28,16 @@ namespace AiCoreApi.Controllers
             Config config,
             ExtendedConfig extendedConfig,
             IMicrosoftSso microsoftSso,
-            IDistributedCache distributedCache)           
+            IGoogleSso googleSso,
+            IDistributedCache distributedCache)
         {
             _connectService = connectService;
             _config = config;
             _extendedConfig = extendedConfig;
             _microsoftSso = microsoftSso;
+            _googleSso = googleSso;
             _distributedCache = distributedCache;
-    }
+        }
 
         [HttpGet("authorize")]
         public async Task<IActionResult> LoginGet(
@@ -76,14 +79,14 @@ namespace AiCoreApi.Controllers
                 return BadRequest("Invalid scope, at least openid is mandatory");
             if (responseType != "code")
                 return BadRequest("Invalid response_type, code is the only supported");
-            
+
             // Microsoft SSO, save the state and redirect to Microsoft login
             var acrValuesArray = acrValues.Split(' ');
             var isPermanentToken = acrValuesArray.Contains(PermanentAcrValue);
             if (isPermanentToken)
-                acrValuesArray = acrValuesArray.Where(x => x != PermanentAcrValue).ToArray();
+                acrValuesArray = [.. acrValuesArray.Where(x => x != PermanentAcrValue)];
 
-            if (acrValuesArray.Contains(MicrosoftSso.AcrValueConst))
+            if (acrValuesArray.Contains(MicrosoftSso.AcrValueConst) || acrValuesArray.Contains(GoogleSso.AcrValueConst))
             {
                 var loginProcessViewModel = new LoginProcessViewModel
                 {
@@ -91,34 +94,34 @@ namespace AiCoreApi.Controllers
                     RedirectUri = redirectUri,
                     CodeChallenge = codeChallenge,
                     CodeChallengeMethod = codeChallengeMethod,
-                    AcrValues = acrValuesArray.ToList(),
+                    AcrValues = [.. acrValuesArray],
                     Scope = scope,
                     ResponseType = responseType,
-                    State = state,
+                    State = state!,
                     IsPermanentToken = isPermanentToken,
                 };
                 var loginProcessState = Guid.NewGuid().ToString();
-                _distributedCache.SetString(loginProcessState, loginProcessViewModel.ToJson(), new DistributedCacheEntryOptions
+                _distributedCache.SetString(loginProcessState, loginProcessViewModel.ToJson()!, new DistributedCacheEntryOptions
                 {
                     AbsoluteExpiration = DateTimeOffset.UtcNow.AddMinutes(SsoSessionTimeoutMinutes)
                 });
                 return Redirect($"{_microsoftSso.GetLoginRedirectUrl(loginProcessState)}");
             }
 
-            if(acrValuesArray.Length != 1 || acrValuesArray[0].Contains(":") == false)
+            if (acrValuesArray.Length != 1 || acrValuesArray[0].Contains(':') == false)
                 return BadRequest("Invalid acr_values");
             // Custom login (username/password)
             var acrLoginPassword = acrValuesArray[0].Split(':');
             var loginName = acrLoginPassword[0];
             var password = acrLoginPassword[1];
-            
+
             var scopes = scope.Split(' ', '+');
             var isOfflineMode = scopes.Contains("offline_access");
             var code = await _connectService.GetCodeByCredentials(loginName, password, isOfflineMode, codeChallenge, isPermanentToken);
             if (string.IsNullOrEmpty(code))
                 return Unauthorized();
 
-            if(redirectUri.Contains("?"))
+            if (redirectUri.Contains('?'))
                 redirectUri += $"&code={code}";
             else
                 redirectUri += $"?code={code}";
@@ -173,7 +176,7 @@ namespace AiCoreApi.Controllers
             if (string.IsNullOrEmpty(postLogoutRedirectUri))
                 return Ok();
             return Redirect(postLogoutRedirectUri);
-            
+
         }
 
         [HttpGet(".well-known/openid-configuration")]
@@ -197,28 +200,31 @@ namespace AiCoreApi.Controllers
 
         // Microsoft SSO callback
         [HttpPost("callback")]
-        public async Task<IActionResult> Callback([FromForm(Name = "code")] string? code, [FromForm(Name = "state")] string? state, [FromForm(Name = "error_description")] string? errorDescription)
+        public async Task<IActionResult> Callback(
+            [FromForm(Name = "code")] string? code,
+            [FromForm(Name = "state")] string? state,
+            [FromForm(Name = "error_description")] string? errorDescription)
         {
             // Get the state from cache (created in "authorize")
-            var loginProcessStateString = await _distributedCache.GetStringAsync(state);
+            var loginProcessStateString = await _distributedCache.GetStringAsync(state!);
             if (!string.IsNullOrEmpty(errorDescription))
                 return BadRequest(errorDescription);
             if (string.IsNullOrEmpty(code))
                 return BadRequest("Code is missing");
             if (string.IsNullOrEmpty(loginProcessStateString))
                 return BadRequest("Invalid state");
-            await _distributedCache.RemoveAsync(state);
+            await _distributedCache.RemoveAsync(state!);
             var loginProcessViewModel = loginProcessStateString.JsonGet<LoginProcessViewModel>();
 
-            var accessToken = await _microsoftSso.GetAccessTokenByCodeAsync(code);
+            var accessToken = await (loginProcessViewModel!.AcrValues.Contains(MicrosoftSso.AcrValueConst) ? _microsoftSso.GetAccessTokenByCodeAsync(code) : _googleSso.GetAccessTokenByCodeAsync(code));
 
-            var scopes = loginProcessViewModel.Scope.Split(' ', '+');
+            var scopes = loginProcessViewModel!.Scope.Split(' ', '+');
             var isOfflineMode = scopes.Contains("offline_access");
             var aiCoreCode = await _connectService.GetCodeBySsoId(accessToken, isOfflineMode, loginProcessViewModel);
             if (string.IsNullOrEmpty(aiCoreCode))
                 return Unauthorized();
 
-            if (loginProcessViewModel.RedirectUri.Contains("?"))
+            if (loginProcessViewModel.RedirectUri.Contains('?'))
                 loginProcessViewModel.RedirectUri += $"&code={aiCoreCode}";
             else
                 loginProcessViewModel.RedirectUri += $"?code={aiCoreCode}";

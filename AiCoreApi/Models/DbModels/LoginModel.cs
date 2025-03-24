@@ -51,6 +51,7 @@ namespace AiCoreApi.Models.DbModels
     public enum LoginTypeEnum
     {
         Password = 1,
-        SsoMicrosoft = 2
+        SsoMicrosoft = 2,
+        SsoGoogle = 3
     }
 }

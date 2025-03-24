@@ -81,6 +81,12 @@ public class ExtendedConfig
 
     [Category(CategoryAttribute.ConfigCategoryEnum.Common)]
     [DataType(DataTypeAttribute.ConfigDataTypeEnum.Boolean)]
+    [Description("Use Google SSO accounts")]
+    [Tooltip("Specifies if Google SSO is enabled for authentication. When activated, a Google account login button becomes available on the Login Screen.")]
+    public bool UseGoogleSso => GetValue<bool>("UseGoogleSso");
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.Common)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Boolean)]
     [Description("Use internal user accounts")]
     [Tooltip("Controls the use of internal user accounts for authentication. If disabled, only domain accounts are available for login (login and password textboxes removed from Login screen). ")]
     public bool UseInternalUsers => GetValue<bool>("UseInternalUsers");

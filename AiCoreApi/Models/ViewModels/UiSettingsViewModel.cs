@@ -15,6 +15,7 @@
         public string FavIconUrl { get; set; } = string.Empty;
         public bool UseSearchTab { get; set; } = false;
         public bool UseMicrosoftSso { get; set; } = false;
+        public bool UseGoogleSso { get; set; } = false;
         public bool UseInternalUsers { get; set; } = false;
         public bool DebugMessagesStorageEnabled { get; set; } = false;
         public bool CollapseFilesSection { get; set; } = false;
