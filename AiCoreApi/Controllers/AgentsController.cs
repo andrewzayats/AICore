@@ -58,8 +58,8 @@ public class AgentsController : ControllerBase
     [AdminAuthorize]
     public async Task<IActionResult> Add([FromBody] AgentViewModel agentViewModel)
     {
-        await _agentsService.AddAgent(agentViewModel);
-        return Ok(true);
+        var newAgent = await _agentsService.AddAgent(agentViewModel);
+        return Ok(newAgent.AgentId);
     }
 
     [HttpPut("{agentId}")]
