@@ -25,8 +25,9 @@ global:
       port: 8021
     qdrant:
       port: 8016      
-tls:
-  crt: "crt"
-  key: "key"
+  tls:
+    createSecret: false
+    crt: "crt"
+    key: "key"
 fileIngestion:
   enabled: false

@@ -5,8 +5,10 @@ metadata:
   name: "{{ .Values.global.environment.name }}-aicore-file-ingestion-ingress"
   annotations:
     traefik.ingress.kubernetes.io/router.middlewares: {{ .Values.global.environment.namespace }}-{{ .Values.global.environment.name }}-aicore-file-ingestion-strip-prefix-middleware@kubernetescrd
-    cert-manager.io/cluster-issuer: letsencrypt-prod
+{{- if not (default false .Values.global.tls.createSecret) }}
+    cert-manager.io/cluster-issuer: "{{ .Values.global.environment.name }}-letsencrypt-issuer"
     acme.cert-manager.io/http01-edit-in-place: "true"
+{{- end }}
 spec:
   ingressClassName: traefik
   tls:
