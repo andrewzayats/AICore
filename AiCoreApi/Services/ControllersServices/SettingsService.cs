@@ -80,6 +80,7 @@ namespace AiCoreApi.Services.ControllersServices
                 PageTitle = _extendedConfig.PageTitle,
                 UseSearchTab = _extendedConfig.UseSearchTab,
                 UseMicrosoftSso = _extendedConfig.UseMicrosoftSso,
+                UseGoogleSso = _extendedConfig.UseGoogleSso,
                 UseInternalUsers = _extendedConfig.UseInternalUsers,
                 DebugMessagesStorageEnabled = _extendedConfig.DebugMessagesStorageEnabled,
                 CollapseFilesSection = _extendedConfig.CollapseFilesSection,

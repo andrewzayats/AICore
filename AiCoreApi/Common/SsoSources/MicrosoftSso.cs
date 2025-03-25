@@ -5,7 +5,6 @@ using System.Text;
 using System.Web;
 using AiCoreApi.Common.Extensions;
 using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.ML.OnnxRuntimeGenAI;
 
 namespace AiCoreApi.Common.SsoSources
 {
@@ -41,12 +40,12 @@ namespace AiCoreApi.Common.SsoSources
         private string RedirectUrl => $"{_config.AppUrl}/connect/callback";
         private readonly string _defaultTenant = "common";
         // Directory.Read.All,GroupMember.Read.All,Group.Read.All
-        private string _scope => $"{HttpUtility.UrlEncode("https://graph.microsoft.com/")}Directory.Read.All+GroupMember.Read.All+Group.Read.All+offline_access+openid+profile";
+        private static string Scope => $"{HttpUtility.UrlEncode("https://graph.microsoft.com/")}Directory.Read.All+GroupMember.Read.All+Group.Read.All+offline_access+openid+profile";
         public async Task<ExtendedTokenModel> GetAccessTokenByCodeAsync(string code)
         {
             using var httpClient = GetHttpClient();
             var body = $"client_id={_extendedConfig.ClientId}"
-               + $"&scope={_scope}"
+               + $"&scope={Scope}"
                + $"&code={code}"
                + $"&redirect_uri={HttpUtility.UrlEncode(RedirectUrl)}"
                + "&grant_type=authorization_code"
@@ -82,7 +81,7 @@ namespace AiCoreApi.Common.SsoSources
                 + "&response_type=code"
                 + $"&redirect_uri={HttpUtility.UrlEncode(RedirectUrl)}"
                 + "&response_mode=form_post"
-                + $"&scope={_scope}"
+                + $"&scope={Scope}"
                 + $"&claims={HttpUtility.UrlEncode("{\"access_token\":{\"xms_cc\":{\"values\":[\"CP1\"]}}}")}"
                 + "&grant_type=refresh_token"
                 + "&code_challenge_method=plain"
@@ -95,30 +94,27 @@ namespace AiCoreApi.Common.SsoSources
         public async Task<List<string>> GetUserGroups(ExtendedTokenModel extendedTokenModel)
         {
             var content = await GetCachedAsync("https://graph.microsoft.com/v1.0/me/transitiveMemberOf", extendedTokenModel.AccessToken);
-            var groups = content.JsonGet<List<UserGroup>>("value") ?? new List<UserGroup>();
-            return groups
+            var groups = content.JsonGet<List<UserGroup>>("value") ?? [];
+            return [.. groups
                 .Select(userGroup => userGroup.DisplayName)
-                .Where(userGroupName => !string.IsNullOrEmpty(userGroupName))
-                .ToList();
+                .Where(userGroupName => !string.IsNullOrEmpty(userGroupName))];
         }
 
         public async Task<List<string>> GetRoleUsers(string rbacRoleName, ExtendedTokenModel extendedTokenModel)
         {
             var rolesList = await GetRolesList(extendedTokenModel);
-            var role = rolesList.FirstOrDefault(role => role.DisplayName.ToLower() == rbacRoleName.ToLower());
+            var role = rolesList.FirstOrDefault(role => role.DisplayName.Equals(rbacRoleName, StringComparison.CurrentCultureIgnoreCase));
             if (role == null)
-                return new List<string>();
+                return [];
             var content = await GetCachedAsync($"https://graph.microsoft.com/v1.0/directoryRoles/{role.Id}/members", extendedTokenModel.AccessToken);
-            var users = content.JsonGet<List<User>>("value") ?? new List<User>();
-            return users
-                .Select(user => user.UserPrincipalName.ToLower())
-                .ToList();
+            var users = content.JsonGet<List<User>>("value") ?? [];
+            return [.. users.Select(user => user.UserPrincipalName.ToLower())];
         }
 
         private async Task<List<Role>> GetRolesList(ExtendedTokenModel extendedTokenModel)
         {
             var content = await GetCachedAsync("https://graph.microsoft.com/v1.0/directoryRoles", extendedTokenModel.AccessToken);
-            var roles = content.JsonGet<List<Role>>("value") ?? new List<Role>();
+            var roles = content.JsonGet<List<Role>>("value") ?? [];
             return roles;
         }
 

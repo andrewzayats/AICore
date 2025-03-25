@@ -69,11 +69,15 @@ namespace AiCoreApi.Services.ControllersServices
 
         public async Task<string?> GetCodeBySsoId(ExtendedTokenModel extendedTokenModel, bool isOfflineMode, LoginProcessViewModel loginProcessViewModel)
         {
-            // Check if the SSO is Microsoft (as no other SSO is implemented)
-            if(!loginProcessViewModel.AcrValues.Contains(MicrosoftSso.AcrValueConst))
+            LoginTypeEnum loginType;
+            if (loginProcessViewModel.AcrValues.Contains(MicrosoftSso.AcrValueConst))
+                loginType = LoginTypeEnum.SsoMicrosoft;
+            else if (loginProcessViewModel.AcrValues.Contains(GoogleSso.AcrValueConst))
+                loginType = LoginTypeEnum.SsoGoogle;
+            else
                 return null;
 
-            var login = await _loginProcessor.GetByLogin(extendedTokenModel.Email, LoginTypeEnum.SsoMicrosoft);
+            var login = await _loginProcessor.GetByLogin(extendedTokenModel.Email, loginType);
             var userGroups = await _microsoftSso.GetUserGroups(extendedTokenModel);
             // If the user is not found, check if the user is in the allowed domain & group and create a new login
             if (login == null)
@@ -82,11 +86,13 @@ namespace AiCoreApi.Services.ControllersServices
                 var clientSsoList = (await _clientSsoProcessor
                     .List())
                     .Where(sso => 
-                        sso.LoginType == LoginTypeEnum.SsoMicrosoft 
+                        (sso.LoginType == LoginTypeEnum.SsoMicrosoft 
                         && sso.Settings[MicrosoftSso.Parameters.Domain] == userDomain
                         && (!sso.Settings.ContainsKey(MicrosoftSso.Parameters.Group)
                             || string.IsNullOrWhiteSpace(sso.Settings[MicrosoftSso.Parameters.Group]) 
                             || userGroups.Contains(sso.Settings[MicrosoftSso.Parameters.Group])))
+                        ||
+                        (loginType == LoginTypeEnum.SsoGoogle && sso.LoginType == LoginTypeEnum.SsoGoogle && sso.Settings[MicrosoftSso.Parameters.Domain] == userDomain))
                     .ToList();
 
                 // If the user is not in the allowed domain & group, return null
@@ -103,7 +109,7 @@ namespace AiCoreApi.Services.ControllersServices
                     Email = extendedTokenModel.Email,
                     FullName = extendedTokenModel.Name,
                     Role = autoAdmin ? RoleEnum.Admin : RoleEnum.User,
-                    LoginType = LoginTypeEnum.SsoMicrosoft,
+                    LoginType = loginType,
                     IsEnabled = true,
                     Created = DateTime.UtcNow,
                     CreatedBy = "system",
