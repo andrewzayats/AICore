@@ -1,0 +1,14 @@
+{{- if (default false .Values.global.tls.createSecret) }}
+kind: Secret
+apiVersion: v1
+metadata:
+  namespace: {{ .Values.global.environment.namespace }}
+  name: "{{ .Values.global.environment.name }}-ingress-tls"
+data:
+  tls.crt: >-
+    {{ .Values.global.tls.crt }}
+  tls.key: >-
+    {{ .Values.global.tls.key }}
+
+type: kubernetes.io/tls
+{{- end }}

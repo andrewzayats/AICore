@@ -61,24 +61,76 @@ AI Core offers a Chat Area for data handling and models testing where users can:
 
 # Deployment with Helm
 
-AI Core services can be deployed to Kubernetes using Helm. The Helm charts are located in the `./helm` folder.
+AI Core services can be deployed to Kubernetes using Helm. The Helm charts are located in the [`./helm`](./helm) folder.
+
+## Prerequisites
+
+### Helm  
+Ensure you have [Helm](https://helm.sh/docs/intro/install/) installed before proceeding.
+
+### Traefik  
+AI Core uses the [Traefik Ingress Controller](https://doc.traefik.io/traefik/) to route traffic. Make sure Traefik is deployed in your cluster before deploying AI Core:
+
+```sh
+helm repo add traefik https://helm.traefik.io/traefik 
+helm repo update 
+helm upgrade --install traefik traefik/traefik \
+  --namespace kube-system \
+  --version 29.0.1 
+```
+
+### Cert-Manager  
+AI Core can use [Cert-Manager](https://cert-manager.io/) to automatically provision and renew TLS certificates via a cluster issuer. Ensure Cert-Manager is installed in your cluster before deploying AI Core:
+
+```sh
+helm repo add jetstack https://charts.jetstack.io --force-update
+helm repo update
+helm upgrade --install cert-manager jetstack/cert-manager \
+  --namespace cert-manager \
+  --create-namespace \
+  --version v1.17.0 \
+  --set crds.enabled=true
+```
+
+The default static configuration can be also installed as follows:
+
+```sh
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.17.0/cert-manager.yaml
+```
+
+## Required Configuration
 
 The Helm charts include a `values.yaml` file that defines default configurations. However, the following values must be explicitly specified during deployment:
 
-- `global.app.domain`: The application domain (e.g., `ai.application.com`).
-- `tls.crt`: Base64-encoded TLS certificate.
-- `tls.key`: Base64-encoded TLS certificate key.
+- **`global.app.domain`**: The application domain (e.g., `ai.example.com`).
+
+You can set these values using a custom `values.yaml` file or by passing them directly via the `--set` flag in the Helm command:
+
+```sh
+helm install ai-core ./helm \
+  --set global.app.domain=ai.example.com
+```
 
 ## Deployment Examples
 
 ### Minimal Deployment
+Deploy AI Core API with an internal PostgreSQL instance, using the latest images from DockerHub. The File Ingestion service is not deployed. The TLS certificate will be automatically generated with cert-manager.
+
+```sh
+helm upgrade aicore "./helm" --namespace $namespace --create-namespace --install --kubeconfig $kubeconfig \
+    --set global.app.domain=$hostName 
+```
+
+### Deploying with explicit certificate
 Deploy AI Core API with an internal PostgreSQL instance, using the latest images from DockerHub. The File Ingestion service is not deployed.
+
 
 ```sh
 helm upgrade aicore "./helm" --namespace $namespace --create-namespace --install --kubeconfig $kubeconfig \
     --set global.app.domain=$hostName \
-    --set tls.crt=$tlsCrt \
-    --set tls.key=$tlsKey
+    --set global.tls.crt.createSecret=true \
+    --set global.tls.crt=$tlsCrt \
+    --set global.tls.key=$tlsKey
 ```
 
 ### Deploying from Azure Container Registry
@@ -87,8 +139,6 @@ Deploy AI Core API with an internal PostgreSQL instance, using images from Azure
 ```sh
 helm upgrade aicore "./helm" --namespace $namespace --create-namespace --install --kubeconfig $kubeconfig \
     --set global.app.domain=$hostName \
-    --set tls.crt=$tlsCrt \
-    --set tls.key=$tlsKey \
     --set global.containerRegistry.name=$acrName.azurecr.io \
     --set global.containerRegistry.dockerConfig=$containerRegistryAuthBase64 \
     --set global.aicore.service.tag=$aiCoreTag \
@@ -101,8 +151,6 @@ If using Azure Kubernetes Service with a managed identity that has access to ACR
 ```sh
 helm upgrade aicore "./helm" --namespace $namespace --create-namespace --install --kubeconfig $kubeconfig \
     --set global.app.domain=$hostName \
-    --set tls.crt=$tlsCrt \
-    --set tls.key=$tlsKey \
     --set global.containerRegistry.name=$acrName.azurecr.io \
     --set global.aicore.service.tag=$aiCoreTag \
     --set global.ingestion.service.tag=$ingestionTag
@@ -114,8 +162,6 @@ In this example, AI Core will use an external PostgreSQL server.
 ```sh
 helm upgrade aicore "./helm" --namespace $namespace --create-namespace --install --kubeconfig $kubeconfig \
     --set global.app.domain=$hostName \
-    --set tls.crt=$tlsCrt \
-    --set tls.key=$tlsKey \
     --set global.containerRegistry.name=$acrName.azurecr.io \
     --set global.aicore.service.tag=$aiCoreTag \
     --set global.ingestion.service.tag=$ingestionTag \
@@ -132,8 +178,9 @@ helm upgrade aicore "./helm" --namespace $namespace --create-namespace --install
 
 | Key | Default Value | Description |
 |------|---------------|-------------|
-| `tls.crt` |  | Base64-encoded TLS certificate |
-| `tls.key` |  | Base64-encoded TLS certificate key |
+| `global.tls.createSecret` | `true` | If `true`, a Kubernetes secret will be created to store the provided TLS certificate. If `false`, the certificate will be automatically issued using the cert-manager.io cluster issuer. |
+| `global.tls.crt` |  | Base64-encoded TLS certificate. Required if `tls.createSecret` is `true`. Ignored otherwise. |
+| `global.tls.key` |  | Base64-encoded TLS private key. Required if `tls.createSecret` is `true`. Ignored otherwise. |
 | `fileIngestion.enabled` | `false` | Enable or disable File Ingestion service |
 | `global.app.name` | `aicore` | Application name |
 | `global.app.domain` |  | Application domain |
