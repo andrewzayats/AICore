@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 using AiCoreApi.Models.DbModels;
 using AiCoreApi.Common.Extensions;
 using AiCoreApi.Common.SsoSources;
@@ -67,17 +68,77 @@ namespace AiCoreApi.Services.ControllersServices
             return loginHistory.Code;
         }
 
-        public async Task<string?> GetCodeBySsoId(ExtendedTokenModel extendedTokenModel, bool isOfflineMode, LoginProcessViewModel loginProcessViewModel)
-        {
-            LoginTypeEnum loginType;
-            if (loginProcessViewModel.AcrValues.Contains(MicrosoftSso.AcrValueConst))
-                loginType = LoginTypeEnum.SsoMicrosoft;
-            else if (loginProcessViewModel.AcrValues.Contains(GoogleSso.AcrValueConst))
-                loginType = LoginTypeEnum.SsoGoogle;
-            else
-                return null;
 
-            var login = await _loginProcessor.GetByLogin(extendedTokenModel.Email, loginType);
+        public async Task<string> GetCodeBySsoId(ExtendedTokenModel extendedTokenModel, bool isOfflineMode,
+            LoginProcessViewModel loginProcessViewModel)
+        {
+            if (loginProcessViewModel.AcrValues.Contains(MicrosoftSso.AcrValueConst))
+                return await GetMicrosoftCodeBySsoId(extendedTokenModel, isOfflineMode, loginProcessViewModel);
+            if (loginProcessViewModel.AcrValues.Contains(GoogleSso.AcrValueConst))
+                return await GetGoogleCodeBySsoId(extendedTokenModel, isOfflineMode, loginProcessViewModel);
+            return "Error: Unsupported SSO type";
+        }
+
+        public async Task<string> GetGoogleCodeBySsoId(ExtendedTokenModel extendedTokenModel, bool isOfflineMode, LoginProcessViewModel loginProcessViewModel)
+        {
+            var login = await _loginProcessor.GetByLogin(extendedTokenModel.Email, LoginTypeEnum.SsoGoogle);
+            if (login == null)
+            {
+                var userDomain = extendedTokenModel.Email.Split('@')[1].ToLower();
+                var clientSsoList = (await _clientSsoProcessor
+                    .List())
+                    .Where(sso => 
+                        sso.LoginType == LoginTypeEnum.SsoGoogle && 
+                        sso.Settings[GoogleSso.Parameters.Domain] == userDomain &&
+                        (
+                            !sso.Settings.ContainsKey(GoogleSso.Parameters.EmailRegex) ||
+                            string.IsNullOrWhiteSpace(sso.Settings[GoogleSso.Parameters.EmailRegex]) ||
+                            sso.Settings[GoogleSso.Parameters.EmailRegex].Split(';').Any(e => Regex.IsMatch(extendedTokenModel.Email, e))
+                        ))
+                    .ToList();
+
+                // If the user is not in the allowed domain return null
+                if (clientSsoList.Count == 0)
+                    return "Error: User not in allowed domain or not match the criteria.";
+                // Get all attached groups
+                var groups = clientSsoList.SelectMany(e => e.Groups).DistinctBy(e => e.GroupId).ToList();
+                var autoAdmin = clientSsoList.Any(sso => sso.Settings.ContainsKey(GoogleSso.Parameters.AutoAdmin) && sso.Settings[GoogleSso.Parameters.AutoAdmin] == "True");
+                login = await _loginProcessor.Add(new LoginModel
+                {
+                    Login = extendedTokenModel.Email,
+                    Email = extendedTokenModel.Email,
+                    FullName = extendedTokenModel.Name,
+                    Role = autoAdmin ? RoleEnum.Admin : RoleEnum.User,
+                    LoginType = LoginTypeEnum.SsoGoogle,
+                    IsEnabled = true,
+                    Created = DateTime.UtcNow,
+                    CreatedBy = "system",
+                    TokensLimit = 0,
+                    Groups = groups
+                });
+            }
+
+            if (!login.IsEnabled)
+                return "Error: Login is disabled";
+
+            var loginHistory = new LoginHistoryModel
+            {
+                LoginId = login.LoginId,
+                Login = login.Login,
+                Code = Guid.NewGuid().ToString(),
+                IsOffline = isOfflineMode,
+                CodeChallenge = loginProcessViewModel.CodeChallenge,
+                ValidUntilTime = loginProcessViewModel.IsPermanentToken
+                    ? DateTime.UtcNow.AddDays(_config.PermanentTokenExpirationTimeDays)
+                    : DateTime.UtcNow.AddMinutes(_config.TokenExpirationTimeMinutes)
+            };
+            _loginHistoryProcessor.Add(loginHistory);
+            return loginHistory.Code;
+        }
+
+        public async Task<string> GetMicrosoftCodeBySsoId(ExtendedTokenModel extendedTokenModel, bool isOfflineMode, LoginProcessViewModel loginProcessViewModel)
+        {
+            var login = await _loginProcessor.GetByLogin(extendedTokenModel.Email, LoginTypeEnum.SsoMicrosoft);
             var userGroups = await _microsoftSso.GetUserGroups(extendedTokenModel);
             // If the user is not found, check if the user is in the allowed domain & group and create a new login
             if (login == null)
@@ -85,19 +146,17 @@ namespace AiCoreApi.Services.ControllersServices
                 var userDomain = extendedTokenModel.Email.Split('@')[1].ToLower();
                 var clientSsoList = (await _clientSsoProcessor
                     .List())
-                    .Where(sso => 
-                        (sso.LoginType == LoginTypeEnum.SsoMicrosoft 
+                    .Where(sso =>
+                        sso.LoginType == LoginTypeEnum.SsoMicrosoft
                         && sso.Settings[MicrosoftSso.Parameters.Domain] == userDomain
                         && (!sso.Settings.ContainsKey(MicrosoftSso.Parameters.Group)
-                            || string.IsNullOrWhiteSpace(sso.Settings[MicrosoftSso.Parameters.Group]) 
+                            || string.IsNullOrWhiteSpace(sso.Settings[MicrosoftSso.Parameters.Group])
                             || userGroups.Contains(sso.Settings[MicrosoftSso.Parameters.Group])))
-                        ||
-                        (loginType == LoginTypeEnum.SsoGoogle && sso.LoginType == LoginTypeEnum.SsoGoogle && sso.Settings[MicrosoftSso.Parameters.Domain] == userDomain))
                     .ToList();
 
                 // If the user is not in the allowed domain & group, return null
-                if(clientSsoList.Count == 0)
-                    return null;
+                if (clientSsoList.Count == 0)
+                    return "Error: User not in allowed domain or group. Or Add Registration permissions for domain/group are not set.";
 
                 // Get all attached groups
 
@@ -109,7 +168,7 @@ namespace AiCoreApi.Services.ControllersServices
                     Email = extendedTokenModel.Email,
                     FullName = extendedTokenModel.Name,
                     Role = autoAdmin ? RoleEnum.Admin : RoleEnum.User,
-                    LoginType = loginType,
+                    LoginType = LoginTypeEnum.SsoMicrosoft,
                     IsEnabled = true,
                     Created = DateTime.UtcNow,
                     CreatedBy = "system",
@@ -122,7 +181,7 @@ namespace AiCoreApi.Services.ControllersServices
             await SyncRbacUserRoles(extendedTokenModel);
 
             if (!login.IsEnabled)
-                return null;
+                return "Error: Login is disabled";
 
             var loginHistory = new LoginHistoryModel
             {
@@ -376,7 +435,7 @@ namespace AiCoreApi.Services.ControllersServices
     public interface IConnectService
     {
         Task<string?> GetCodeByCredentials(string loginName, string password, bool isOfflineMode, string codeChallenge, bool isPermanentToken);
-        Task<string?> GetCodeBySsoId(ExtendedTokenModel extendedTokenModel, bool isOfflineMode, LoginProcessViewModel loginProcessViewModel);
+        Task<string> GetCodeBySsoId(ExtendedTokenModel extendedTokenModel, bool isOfflineMode, LoginProcessViewModel loginProcessViewModel);
         Task<TokenModel?> GetByCode(string code, string codeVerifier);
         Task<TokenModel?> GetByRefreshToken(string refreshToken);
         Task<LoginModel?> CheckAccessToken(string accessToken);

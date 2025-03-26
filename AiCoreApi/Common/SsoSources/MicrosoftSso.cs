@@ -94,27 +94,30 @@ namespace AiCoreApi.Common.SsoSources
         public async Task<List<string>> GetUserGroups(ExtendedTokenModel extendedTokenModel)
         {
             var content = await GetCachedAsync("https://graph.microsoft.com/v1.0/me/transitiveMemberOf", extendedTokenModel.AccessToken);
-            var groups = content.JsonGet<List<UserGroup>>("value") ?? [];
-            return [.. groups
+            var groups = content.JsonGet<List<UserGroup>>("value") ?? new List<UserGroup>();
+            return groups
                 .Select(userGroup => userGroup.DisplayName)
-                .Where(userGroupName => !string.IsNullOrEmpty(userGroupName))];
+                .Where(userGroupName => !string.IsNullOrEmpty(userGroupName))
+                .ToList();
         }
 
         public async Task<List<string>> GetRoleUsers(string rbacRoleName, ExtendedTokenModel extendedTokenModel)
         {
             var rolesList = await GetRolesList(extendedTokenModel);
-            var role = rolesList.FirstOrDefault(role => role.DisplayName.Equals(rbacRoleName, StringComparison.CurrentCultureIgnoreCase));
+            var role = rolesList.FirstOrDefault(role => role.DisplayName.ToLower() == rbacRoleName.ToLower());
             if (role == null)
-                return [];
+                return new List<string>();
             var content = await GetCachedAsync($"https://graph.microsoft.com/v1.0/directoryRoles/{role.Id}/members", extendedTokenModel.AccessToken);
-            var users = content.JsonGet<List<User>>("value") ?? [];
-            return [.. users.Select(user => user.UserPrincipalName.ToLower())];
+            var users = content.JsonGet<List<User>>("value") ?? new List<User>();
+            return users
+                .Select(user => user.UserPrincipalName.ToLower())
+                .ToList();
         }
 
         private async Task<List<Role>> GetRolesList(ExtendedTokenModel extendedTokenModel)
         {
             var content = await GetCachedAsync("https://graph.microsoft.com/v1.0/directoryRoles", extendedTokenModel.AccessToken);
-            var roles = content.JsonGet<List<Role>>("value") ?? [];
+            var roles = content.JsonGet<List<Role>>("value") ?? new List<Role>();
             return roles;
         }
 

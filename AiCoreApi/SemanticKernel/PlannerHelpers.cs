@@ -48,6 +48,7 @@ namespace AiCoreApi.SemanticKernel
         private readonly IAzureServiceBusNotificationAgent _azureServiceBusNotificationAgent;
         private readonly IRabbitMqNotificationAgent _rabbitMqNotificationAgent;
         private readonly IAudioPromptAgent _audioPromptAgent;
+        private readonly IWebCrawlerAgent _webCrawlerAgent;
 
         public PlannerHelpers(
             RequestAccessor requestAccessor,
@@ -76,7 +77,8 @@ namespace AiCoreApi.SemanticKernel
             IAzureAiSearchAgent azureAiSearchAgent,
             IAzureServiceBusNotificationAgent azureServiceBusNotificationAgent,
             IRabbitMqNotificationAgent rabbitMqNotificationAgent,
-            IAudioPromptAgent audioPromptAgent
+            IAudioPromptAgent audioPromptAgent,
+            IWebCrawlerAgent webCrawlerAgent
             )
         {
             _requestAccessor = requestAccessor;
@@ -106,6 +108,7 @@ namespace AiCoreApi.SemanticKernel
             _azureServiceBusNotificationAgent = azureServiceBusNotificationAgent;
             _rabbitMqNotificationAgent = rabbitMqNotificationAgent;
             _audioPromptAgent = audioPromptAgent;
+            _webCrawlerAgent = webCrawlerAgent;
         }
 
         private List<AgentModel>? _agentsList;
@@ -229,6 +232,7 @@ namespace AiCoreApi.SemanticKernel
                 { AgentType.AzureServiceBusNotification, _azureServiceBusNotificationAgent },
                 { AgentType.RabbitMqNotification, _rabbitMqNotificationAgent },
                 { AgentType.AudioPromptAgent, _audioPromptAgent },
+                { AgentType.WebCrawler, _webCrawlerAgent },
             };
             return agentMapping;
         }
