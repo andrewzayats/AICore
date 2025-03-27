@@ -19,6 +19,7 @@ namespace AiCoreApi.Models.DbModels
     public enum SettingType
     {
         Common = 1,
-        Version = 2
+        Version = 2,
+        EntraCredentials = 3,
     }
 }

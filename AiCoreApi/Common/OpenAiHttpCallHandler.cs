@@ -46,7 +46,7 @@ namespace AiCoreApi.Common
                 (conn.Type == ConnectionType.AzureOpenAiLlm && conn.Content["deploymentName"].ToLower() == modelDeploymentName) ||
                 (conn.Type == ConnectionType.DeepSeekLlm && conn.Content["modelName"].ToLower() == modelDeploymentName) ||
                 (conn.Type == ConnectionType.OpenAiLlm && conn.Content["modelName"].ToLower() == modelDeploymentName));
-            connection = await ApplyAzureOpenAiLlmCarousel(request, connections, connection, modelDeploymentName);
+            connection = await ApplyAzureOpenAiLlmCarousel(serviceProvider, request, connections, connection, modelDeploymentName);
             if (connection == null)
                 throw new TokensLimitException($"Model Deployment was not found in LLM connections: {modelDeploymentName}");
             var tokenLimitPerDay = Convert.ToInt64(connection.Content["tokenLimitPerDay"]);
@@ -89,7 +89,7 @@ namespace AiCoreApi.Common
             return response;
         }
 
-        private async Task<ConnectionModel> ApplyAzureOpenAiLlmCarousel(HttpRequestMessage request, List<ConnectionModel> connections, ConnectionModel connection, string modelDeploymentName)
+        private async Task<ConnectionModel> ApplyAzureOpenAiLlmCarousel(IServiceProvider serviceProvider, HttpRequestMessage request, List<ConnectionModel> connections, ConnectionModel connection, string modelDeploymentName)
         {
             if (modelDeploymentName == nameof(ConnectionType.AzureOpenAiLlmCarousel) || request.Headers.Contains(nameof(ConnectionType.AzureOpenAiLlmCarousel)))
             {
@@ -105,12 +105,27 @@ namespace AiCoreApi.Common
                 {
                     request.RequestUri = new Uri(connection.Content["endpoint"]
                         + Regex.Replace(request.RequestUri.PathAndQuery, @"(/deployments/)([^/]+)(/chat/)", $"$1{connection.Content["deploymentName"]}$3"));
-                    request.Headers.Remove("api-key");
-                    request.Headers.Add("api-key", connection.Content["azureOpenAiKey"]);
-
+                    if (request.Headers.Contains("api-key"))
+                        request.Headers.Remove("api-key");
+                    else if (request.Headers.Contains("Authorization"))
+                        request.Headers.Remove("Authorization");
+                    
+                    var accessType = connection.Content.ContainsKey("accessType") ? connection.Content["accessType"] : "apiKey";
+                    if (accessType == "apiKey")
+                        request.Headers.Add("api-key", connection.Content["azureOpenAiKey"]);
+                    else
+                    {
+                        var entraTokenProvider = serviceProvider.GetService<IEntraTokenProvider>();
+                        var accessToken = await entraTokenProvider.GetAccessTokenObjectAsync(accessType, "https://cognitiveservices.azure.com/.default");
+                        request.Headers.Remove("Authorization");
+                        request.Headers.Add("Authorization", $"Bearer {accessToken.Token}");
+                    }
                     if (modelDeploymentName == nameof(ConnectionType.AzureOpenAiLlmCarousel))
                     {
-                        request.Headers.Add(nameof(ConnectionType.AzureOpenAiLlmCarousel), string.Join(",", connectionIds));
+                        var customCarouselHeaderName = nameof(ConnectionType.AzureOpenAiLlmCarousel);
+                        if (request.Headers.Contains(customCarouselHeaderName))
+                            request.Headers.Remove(customCarouselHeaderName);
+                        request.Headers.Add(customCarouselHeaderName, string.Join(",", connectionIds));
                     }
                 }
             }

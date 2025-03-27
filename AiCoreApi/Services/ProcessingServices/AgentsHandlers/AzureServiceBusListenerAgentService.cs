@@ -10,10 +10,12 @@ namespace AiCoreApi.Services.ProcessingServices.AgentsHandlers
     {
         private static readonly Dictionary<string, ServiceBusProcessor> ServiceBusProcessors = new();
         private static readonly Dictionary<string, ServiceBusClient> ServiceBusClients = new();
+        private readonly IEntraTokenProvider _entraTokenProvider;
         private readonly IAgentsProcessor _agentsProcessor; 
         private readonly IConnectionProcessor _connectionProcessor;
 
         public AzureServiceBusListenerAgentService(
+            IEntraTokenProvider entraTokenProvider,
             ILoginProcessor loginProcessor,
             IAgentsProcessor agentsProcessor,
             IServiceProvider serviceProvider,
@@ -22,6 +24,7 @@ namespace AiCoreApi.Services.ProcessingServices.AgentsHandlers
             IConnectionProcessor connectionProcessor)
             : base(loginProcessor, debugLogProcessor, extendedConfig, serviceProvider)
         {
+            _entraTokenProvider = entraTokenProvider;
             _agentsProcessor = agentsProcessor;
             _connectionProcessor = connectionProcessor;
         }
@@ -61,12 +64,32 @@ namespace AiCoreApi.Services.ProcessingServices.AgentsHandlers
                     continue;
                 }
 
-                var serviceBusConnectionString = connection.Content["serviceBusConnectionString"];
+                var accessType = connection.Content.ContainsKey("accessType") ? connection.Content["accessType"] : "apiKey";
+                var serviceBusConnectionString = connection.Content.ContainsKey("serviceBusConnectionString") ? connection.Content["serviceBusConnectionString"] : "";
+                var serviceBusNamespace = connection.Content.ContainsKey("serviceBusNamespace") ? connection.Content["serviceBusNamespace"] : "";
+
                 try
                 {
-                    var client = ServiceBusClients.ContainsKey(serviceBusConnectionString)
-                        ? ServiceBusClients[serviceBusConnectionString]
-                        : new ServiceBusClient(serviceBusConnectionString);
+                    ServiceBusClient client;
+                    var serviceBusClientsKey = $"{serviceBusConnectionString}|{serviceBusNamespace}";
+                    if (ServiceBusClients.ContainsKey(serviceBusClientsKey))
+                    {
+                        client = ServiceBusClients[serviceBusConnectionString];
+                    }
+                    else
+                    {
+                        if (accessType == "apiKey")
+                        {
+                            client = new ServiceBusClient(serviceBusConnectionString);
+                        }
+                        else
+                        {
+                            var accessToken = await _entraTokenProvider.GetAccessTokenObjectAsync(accessType, "https://servicebus.azure.net/.default");
+                            if (!serviceBusNamespace.StartsWith("https://"))
+                                serviceBusNamespace = $"https://{serviceBusNamespace}";
+                            client = new ServiceBusClient(serviceBusNamespace, new StaticTokenCredential(accessToken.Token, accessToken.ExpiresOn));
+                        }
+                    }
                     ServiceBusClients[serviceBusConnectionString] = client;
 
                     var processor = client.CreateProcessor(queueOrTopicName);
