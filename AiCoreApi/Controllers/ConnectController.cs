@@ -84,7 +84,7 @@ namespace AiCoreApi.Controllers
             var acrValuesArray = acrValues.Split(' ');
             var isPermanentToken = acrValuesArray.Contains(PermanentAcrValue);
             if (isPermanentToken)
-                acrValuesArray = [.. acrValuesArray.Where(x => x != PermanentAcrValue)];
+                acrValuesArray = acrValuesArray.Where(x => x != PermanentAcrValue).ToArray();
 
             if (acrValuesArray.Contains(MicrosoftSso.AcrValueConst) || acrValuesArray.Contains(GoogleSso.AcrValueConst))
             {
@@ -94,7 +94,7 @@ namespace AiCoreApi.Controllers
                     RedirectUri = redirectUri,
                     CodeChallenge = codeChallenge,
                     CodeChallengeMethod = codeChallengeMethod,
-                    AcrValues = [.. acrValuesArray],
+                    AcrValues = acrValuesArray.ToList(),
                     Scope = scope,
                     ResponseType = responseType,
                     State = state!,
@@ -105,7 +105,11 @@ namespace AiCoreApi.Controllers
                 {
                     AbsoluteExpiration = DateTimeOffset.UtcNow.AddMinutes(SsoSessionTimeoutMinutes)
                 });
-                return Redirect($"{_microsoftSso.GetLoginRedirectUrl(loginProcessState)}");
+                if (acrValuesArray.Contains(MicrosoftSso.AcrValueConst))
+                    return Redirect($"{_microsoftSso.GetLoginRedirectUrl(loginProcessState)}");
+                if (acrValuesArray.Contains(GoogleSso.AcrValueConst))
+                    return Redirect($"{_googleSso.GetLoginRedirectUrl(loginProcessState)}");
+                return BadRequest("Invalid acr_values");
             }
 
             if (acrValuesArray.Length != 1 || acrValuesArray[0].Contains(':') == false)
@@ -198,6 +202,17 @@ namespace AiCoreApi.Controllers
             });
         }
 
+
+        [HttpGet("callback")]
+        public async Task<IActionResult> CallbackGet(
+            [FromQuery(Name = "code")] string? code,
+            [FromQuery(Name = "state")] string? state,
+            [FromQuery(Name = "error_description")] string? errorDescription)
+        {
+            return await Callback(code, state, errorDescription);
+        }
+
+
         // Microsoft SSO callback
         [HttpPost("callback")]
         public async Task<IActionResult> Callback(
@@ -216,13 +231,28 @@ namespace AiCoreApi.Controllers
             await _distributedCache.RemoveAsync(state!);
             var loginProcessViewModel = loginProcessStateString.JsonGet<LoginProcessViewModel>();
 
-            var accessToken = await (loginProcessViewModel!.AcrValues.Contains(MicrosoftSso.AcrValueConst) ? _microsoftSso.GetAccessTokenByCodeAsync(code) : _googleSso.GetAccessTokenByCodeAsync(code));
+            var isMicrosoftSso = loginProcessViewModel!.AcrValues.Contains(MicrosoftSso.AcrValueConst);
+            var isGoogleSso = loginProcessViewModel!.AcrValues.Contains(GoogleSso.AcrValueConst);
+
+            if(isMicrosoftSso && !_extendedConfig.UseMicrosoftSso)
+                return BadRequest("Microsoft SSO is not enabled");
+
+            if (isGoogleSso && !_extendedConfig.UseGoogleSso)
+                return BadRequest("Google SSO is not enabled");
+
+            ExtendedTokenModel? accessToken;
+            if (isMicrosoftSso)
+                accessToken = await _microsoftSso.GetAccessTokenByCodeAsync(code);
+            else if (isGoogleSso)
+                accessToken = await _googleSso.GetAccessTokenByCodeAsync(code);
+            else
+                return BadRequest("Invalid acr_values: Unsupported SSO type");
 
             var scopes = loginProcessViewModel!.Scope.Split(' ', '+');
             var isOfflineMode = scopes.Contains("offline_access");
             var aiCoreCode = await _connectService.GetCodeBySsoId(accessToken, isOfflineMode, loginProcessViewModel);
-            if (string.IsNullOrEmpty(aiCoreCode))
-                return Unauthorized();
+            if (aiCoreCode.StartsWith("Error:"))
+                return Unauthorized(new { error = aiCoreCode });
 
             if (loginProcessViewModel.RedirectUri.Contains('?'))
                 loginProcessViewModel.RedirectUri += $"&code={aiCoreCode}";

@@ -4,6 +4,8 @@ using System.Web;
 using AiCoreApi.Common;
 using AiCoreApi.Common.Extensions;
 using AiCoreApi.Data.Processors;
+using HtmlAgilityPack;
+using System.Text.Json;
 
 namespace AiCoreApi.SemanticKernel.Agents
 {
@@ -24,7 +26,9 @@ namespace AiCoreApi.SemanticKernel.Agents
             public const string QueryString = "queryString";
             public const string BingConnection = "bingConnection";
             public const string Count = "count";
+            public const string OutputType = "outputType";
         }
+
         private readonly RequestAccessor _requestAccessor;
         private readonly ResponseAccessor _responseAccessor;
         private readonly IHttpClientFactory _httpClientFactory;
@@ -44,9 +48,7 @@ namespace AiCoreApi.SemanticKernel.Agents
             _connectionProcessor = connectionProcessor;
         }
 
-        public override async Task<string> DoCall(
-            AgentModel agent, 
-            Dictionary<string, string> parameters)
+        public override async Task<string> DoCall(AgentModel agent, Dictionary<string, string> parameters)
         {
             parameters.ToList().ForEach(p => parameters[p.Key] = HttpUtility.HtmlDecode(p.Value));
 
@@ -63,17 +65,63 @@ namespace AiCoreApi.SemanticKernel.Agents
             var connections = await _connectionProcessor.List();
             var bingConnection = GetConnection(_requestAccessor, _responseAccessor, connections, ConnectionType.BingApi, DebugMessageSenderName, connectionName: bingConnectionName);
 
-            var results = await DoSearchAsync(
-                queryString,
-                bingConnection.Content["bingApiKey"], 
-                int.Parse(agent.Content[AgentContentParameters.Count].Value));
-            var result = results.ToJson();
+            var count = int.Parse(agent.Content[AgentContentParameters.Count].Value);
+            var outputType = agent.Content.TryGetValue(AgentContentParameters.OutputType, out var ot) ? ot.Value : "snippetTexts";
+            var results = await DoSearchAsync(queryString, bingConnection.Content["bingApiKey"], count);
+
+            string result;
+            if (outputType == "snippetJson")
+            {
+                var jsonList = results.Select(r => new { url = r.Url, text = r.Snippet }).ToList();
+                result = JsonSerializer.Serialize(jsonList);
+            }
+            else if (outputType == "pagesJson")
+            {
+                var pages = new List<Dictionary<string, string>>();
+                foreach (var page in results)
+                {
+                    var text = await CrawlPageTextAsync(page.Url);
+                    pages.Add(new Dictionary<string, string> { { "url", page.Url }, { "text", text } });
+                }
+                result = JsonSerializer.Serialize(pages);
+            }
+            else // default: snippetTexts
+            {
+                result = JsonSerializer.Serialize(results.Select(r => r.Snippet).ToList());
+            }
 
             _responseAccessor.AddDebugMessage(DebugMessageSenderName, "Execute Query String Result", result);
             return result;
         }
 
-        private async Task<List<string>?> DoSearchAsync(string query, string apiKey, int count = 1, int offset = 0, CancellationToken cancellationToken = default)
+        private async Task<string> CrawlPageTextAsync(string url)
+        {
+            try
+            {
+                var client = _httpClientFactory.CreateClient("NoRetryClient");
+                var html = await client.GetStringAsync(url);
+                var doc = new HtmlDocument();
+                doc.LoadHtml(html);
+
+                doc.DocumentNode.Descendants()
+                    .Where(n => n.Name == "script" || n.Name == "style")
+                    .ToList()
+                    .ForEach(n => n.Remove());
+
+                var text = HtmlEntity.DeEntitize(doc.DocumentNode.InnerText);
+                return string.Join("\n",
+                    text.Split('\n')
+                        .Select(l => l.Trim())
+                        .Where(l => !string.IsNullOrWhiteSpace(l)));
+            }
+            catch (Exception ex)
+            {
+                _responseAccessor.AddDebugMessage(DebugMessageSenderName, "Error", $"Failed to crawl {url}, {ex.Message}");
+                return string.Empty;
+            }
+        }
+
+        private async Task<List<WebPage>> DoSearchAsync(string query, string apiKey, int count = 1, int offset = 0, CancellationToken cancellationToken = default)
         {
             if (count is <= 0 or >= 50)
                 throw new ArgumentOutOfRangeException(nameof(count), count, $"{nameof(count)} value must be greater than 0 and less than 50.");
@@ -82,7 +130,7 @@ namespace AiCoreApi.SemanticKernel.Agents
             using var response = await SendGetRequestAsync(uri, apiKey, cancellationToken).ConfigureAwait(false);
             var json = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             var webPages = json.JsonGet<List<WebPage>>("webPages.value");
-            return webPages?.Select(x => x.Snippet).Take(count).ToList();
+            return webPages ?? new List<WebPage>();
         }
 
         private async Task<HttpResponseMessage> SendGetRequestAsync(Uri uri, string apiKey, CancellationToken cancellationToken = default)

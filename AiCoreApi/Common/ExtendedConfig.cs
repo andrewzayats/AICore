@@ -74,24 +74,6 @@ public class ExtendedConfig
     public string NoInformationFoundText => GetValue<string>("NoInformationFoundText");
 
     [Category(CategoryAttribute.ConfigCategoryEnum.Common)]
-    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Boolean)]
-    [Description("Use Microsoft SSO accounts")]
-    [Tooltip("Specifies if Microsoft SSO is enabled for authentication. When activated, a domain account login button becomes available on the Login Screen. Moreover, the \"Users\" section in the Main Menu gains a new \"SSO Clients\" subtab for managing allowed domains.")]
-    public bool UseMicrosoftSso => GetValue<bool>("UseMicrosoftSso");
-
-    [Category(CategoryAttribute.ConfigCategoryEnum.Common)]
-    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Boolean)]
-    [Description("Use Google SSO accounts")]
-    [Tooltip("Specifies if Google SSO is enabled for authentication. When activated, a Google account login button becomes available on the Login Screen.")]
-    public bool UseGoogleSso => GetValue<bool>("UseGoogleSso");
-
-    [Category(CategoryAttribute.ConfigCategoryEnum.Common)]
-    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Boolean)]
-    [Description("Use internal user accounts")]
-    [Tooltip("Controls the use of internal user accounts for authentication. If disabled, only domain accounts are available for login (login and password textboxes removed from Login screen). ")]
-    public bool UseInternalUsers => GetValue<bool>("UseInternalUsers");
-
-    [Category(CategoryAttribute.ConfigCategoryEnum.Common)]
     [Description("Planner prompt")]
     [Tooltip("The Planner prompt serves as a template for the root Planner, providing it with instructions for LLM on how to generate a plan of action for the Agents to accomplish the desired outcome. This prompt can incorporate various placeholders: {{currentQuestion}}: The last message exchanged in the Chat dialog. {{pluginsInstructions}}: A combined text derived from the Plugins Instructions sections of all Agents. {{hasFiles}}: A boolean value indicating whether any files were attached to the last message. {{filesNames}}: A list containing the names of all files attached to the last message. {{filesData}}: The parsed text content of all files attached to the last message. It's important to note that not all placeholders may be necessary for every Planner prompt.")]
     public string PlannerPrompt => GetValue<string>("PlannerPrompt", PlannerHelpers.PlannerPromptPlaceholders.PluginsInstructionsPlaceholder);
@@ -141,6 +123,24 @@ public class ExtendedConfig
     public int FileIngestionRequestTimeout => GetValue<int>("FileIngestionRequestTimeout");
 
     [Category(CategoryAttribute.ConfigCategoryEnum.Authentication)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Boolean)]
+    [Description("Use Microsoft SSO accounts")]
+    [Tooltip("Specifies if Microsoft SSO is enabled for authentication. When activated, a domain account login button becomes available on the Login Screen. Moreover, the \"Users\" section in the Main Menu gains a new \"SSO Clients\" subtab for managing allowed domains.")]
+    public bool UseMicrosoftSso => GetValue<bool>("UseMicrosoftSso");
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.Authentication)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Boolean)]
+    [Description("Use Google SSO accounts")]
+    [Tooltip("Specifies if Google SSO is enabled for authentication. When activated, a Google account login button becomes available on the Login Screen.")]
+    public bool UseGoogleSso => GetValue<bool>("UseGoogleSso");
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.Authentication)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Boolean)]
+    [Description("Use internal user accounts")]
+    [Tooltip("Controls the use of internal user accounts for authentication. If disabled, only domain accounts are available for login (login and password textboxes removed from Login screen). ")]
+    public bool UseInternalUsers => GetValue<bool>("UseInternalUsers");
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.Authentication)]
     [DataType(DataTypeAttribute.ConfigDataTypeEnum.Int)]
     [Description("Token expiration time in minutes")]
     [Tooltip("The regular token expiration time specifies the duration in minutes after which the token becomes invalid. Once expired, the user must log in again. Each time a new access token is obtained using a refresh token, session lifetime is renewed.")]
@@ -178,6 +178,17 @@ public class ExtendedConfig
     [Description("App Registration Client Secret (Microsoft SSO)")]
     [Tooltip("The App Registration Client Secret is used to authenticate the application with the Microsoft SSO service.")]
     public string ClientSecret => GetValue<string>("ClientSecret");
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.Authentication)]
+    [Description("Google App Client Id (Google SSO)")]
+    [Tooltip("The Google Client Id is used to authenticate the application with the Google SSO service.")]
+    public string GoogleClientId => GetValue<string>("GoogleClientId");
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.Authentication)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Password)]
+    [Description("Google App Client Secret (Google SSO)")]
+    [Tooltip("The Google Client Secret is used to authenticate the application with the Google SSO service.")]
+    public string GoogleClientSecret => GetValue<string>("GoogleClientSecret");
 
     [Category(CategoryAttribute.ConfigCategoryEnum.Authentication)]
     [DataType(DataTypeAttribute.ConfigDataTypeEnum.Boolean)]

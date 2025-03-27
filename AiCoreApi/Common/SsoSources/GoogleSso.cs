@@ -24,6 +24,12 @@ namespace AiCoreApi.Common.SsoSources
         }
 
         public const string AcrValueConst = "google";
+        public static class Parameters
+        {
+            public const string Domain = "Domain";
+            public const string AutoAdmin = "AutoAdmin";
+            public const string EmailRegex = "EmailRegex";
+        }
 
         private const string CodeChallenge = "ThisIsntRandomButItNeedsToBe43CharactersLong";
 
@@ -34,13 +40,13 @@ namespace AiCoreApi.Common.SsoSources
         public async Task<ExtendedTokenModel> GetAccessTokenByCodeAsync(string code)
         {
             using var httpClient = GetHttpClient();
-            var body = $"client_id={_extendedConfig.ClientId}"
+            var body = $"client_id={_extendedConfig.GoogleClientId}"
                + $"&scope={Scope}"
                + $"&code={code}"
                + $"&redirect_uri={HttpUtility.UrlEncode(RedirectUrl)}"
                + "&grant_type=authorization_code"
                + $"&code_verifier={CodeChallenge}"
-               + (string.IsNullOrEmpty(_extendedConfig.ClientSecret) ? "" : $"&client_secret={_extendedConfig.ClientSecret}");
+               + (string.IsNullOrEmpty(_extendedConfig.GoogleClientSecret) ? "" : $"&client_secret={_extendedConfig.GoogleClientSecret}");
 
             var request = new HttpRequestMessage(HttpMethod.Post, "https://oauth2.googleapis.com/token")
             {
@@ -61,7 +67,7 @@ namespace AiCoreApi.Common.SsoSources
                 RefreshToken = refreshToken,
                 Email = jwtPayload["email"]!.ToString()!.ToLower(),
                 Name = jwtPayload["name"]!.ToString()!,
-                Ip = jwtPayload["ipaddr"].ToString()!,
+                Ip = jwtPayload.ContainsKey("ipaddr") ? jwtPayload["ipaddr"].ToString()! : "",
             };
         }
 
@@ -70,7 +76,7 @@ namespace AiCoreApi.Common.SsoSources
         public string GetLoginRedirectUrl(string state)
         {
             var url = "https://accounts.google.com/o/oauth2/v2/auth?";
-            var parameters = $"client_id={_extendedConfig.ClientId}"
+            var parameters = $"client_id={_extendedConfig.GoogleClientId}"
                 + "&response_type=code"
                 + $"&redirect_uri={HttpUtility.UrlEncode(RedirectUrl)}"
                 + $"&scope={Scope}"
