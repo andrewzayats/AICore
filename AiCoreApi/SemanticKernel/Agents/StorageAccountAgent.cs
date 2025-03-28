@@ -25,17 +25,20 @@ namespace AiCoreApi.SemanticKernel.Agents
             public const string ContainerName = "containerName";
         }
 
+        private readonly IEntraTokenProvider _entraTokenProvider;
         private readonly IConnectionProcessor _connectionProcessor;
         private readonly RequestAccessor _requestAccessor;
         private readonly ResponseAccessor _responseAccessor;
 
         public StorageAccountAgent(
+            IEntraTokenProvider entraTokenProvider,
             IConnectionProcessor connectionProcessor,
             RequestAccessor requestAccessor,
             ResponseAccessor responseAccessor,
             ExtendedConfig extendedConfig,
             ILogger<StorageAccountAgent> logger) : base(requestAccessor, extendedConfig, logger)
         {
+            _entraTokenProvider = entraTokenProvider;
             _connectionProcessor = connectionProcessor;
             _requestAccessor = requestAccessor;
             _responseAccessor = responseAccessor;
@@ -57,12 +60,23 @@ namespace AiCoreApi.SemanticKernel.Agents
             var connection = GetConnection(_requestAccessor, _responseAccessor, connections, ConnectionType.StorageAccount, DebugMessageSenderName, connectionName: connectionName);
 
             var accountName = connection.Content["accountName"];
-            var accountKey = connection.Content["apiKey"];
-            var blobEndpoint = $"https://{accountName}.blob.core.windows.net";
-            var storageCredentials = new StorageSharedKeyCredential(accountName, accountKey);
-            var blobServiceClient = new BlobServiceClient(new Uri(blobEndpoint), storageCredentials);
+            var accessType = connection.Content.ContainsKey("accessType") ? connection.Content["accessType"] : "apiKey";
 
-            var result = string.Empty;
+            BlobServiceClient blobServiceClient;
+            var blobEndpoint = $"https://{accountName}.blob.core.windows.net";
+            if (accessType == "apiKey")
+            {
+                var accountKey = connection.Content["apiKey"];
+                var storageCredentials = new StorageSharedKeyCredential(accountName, accountKey);
+                blobServiceClient = new BlobServiceClient(new Uri(blobEndpoint), storageCredentials);
+            }
+            else
+            {
+                var accessToken = await _entraTokenProvider.GetAccessTokenObjectAsync(accessType, "https://storage.azure.com/.default");
+                blobServiceClient = new BlobServiceClient(new Uri(blobEndpoint), new StaticTokenCredential(accessToken.Token, accessToken.ExpiresOn));
+            }
+
+            string result;
             switch (action)
             {
                 case ("LIST"):

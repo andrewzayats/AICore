@@ -19,17 +19,20 @@ namespace AiCoreApi.SemanticKernel.Agents
         }
 
         private readonly IConnectionProcessor _connectionProcessor;
+        private readonly IEntraTokenProvider _entraTokenProvider;
         private readonly RequestAccessor _requestAccessor;
         private readonly ResponseAccessor _responseAccessor;
 
         public SqlServerAgent(
             IConnectionProcessor connectionProcessor,
+            IEntraTokenProvider entraTokenProvider,
             RequestAccessor requestAccessor,
             ResponseAccessor responseAccessor,
             ExtendedConfig extendedConfig,
             ILogger<SqlServerAgent> logger) : base(requestAccessor, extendedConfig, logger)
         {
             _connectionProcessor = connectionProcessor;
+            _entraTokenProvider = entraTokenProvider;
             _requestAccessor = requestAccessor;
             _responseAccessor = responseAccessor;
         }
@@ -45,17 +48,24 @@ namespace AiCoreApi.SemanticKernel.Agents
             _responseAccessor.AddDebugMessage(DebugMessageSenderName, "DoCall Request", sqlQuery);
             var connections = await _connectionProcessor.List();
             var connection = GetConnection(_requestAccessor, _responseAccessor, connections, ConnectionType.SqlServer, DebugMessageSenderName, connectionName: connectionName);
-            var result = ExecuteScript(sqlQuery, connection.Content["connectionString"]);
+            var result = await ExecuteScript(sqlQuery, connection);
             _responseAccessor.AddDebugMessage(DebugMessageSenderName, "DoCall Response", result);
             return result;
         }
 
-        private string ExecuteScript(string script, string connectionString)
+        private async Task<string> ExecuteScript(string script, ConnectionModel connection)
         {
-            using var connection = new SqlConnection(connectionString);
-            connection.Open();
-            using var command = new SqlCommand(script, connection);
-            using var reader = command.ExecuteReader();
+            var connectionString = connection.Content["connectionString"];
+            var accessType = connection.Content.ContainsKey("accessType") ? connection.Content["accessType"] : "apiKey";
+            using var sqlServerConnection = new SqlConnection(connectionString);
+            if (accessType != "apiKey")
+            {
+                var accessToken = await _entraTokenProvider.GetAccessTokenAsync(accessType, "https://database.windows.net/.default");
+                sqlServerConnection.AccessToken = accessToken;
+            }
+            sqlServerConnection.Open();
+            using var command = new SqlCommand(script, sqlServerConnection);
+            using var reader = await command.ExecuteReaderAsync();
             var tables = new List<List<Dictionary<string, object>>>();
             do
             {

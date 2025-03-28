@@ -20,19 +20,22 @@ namespace AiCoreApi.SemanticKernel.Agents
         }
 
         private readonly IConnectionProcessor _connectionProcessor;
+        private readonly IEntraTokenProvider _entraTokenProvider;
         private readonly RequestAccessor _requestAccessor;
         private readonly ResponseAccessor _responseAccessor;
 
         public AzureServiceBusNotificationAgent(
             IConnectionProcessor connectionProcessor,
+            IEntraTokenProvider entraTokenProvider,
             RequestAccessor requestAccessor,
             ResponseAccessor responseAccessor,
             ExtendedConfig extendedConfig,
             ILogger<AzureServiceBusNotificationAgent> logger) : base(requestAccessor, extendedConfig, logger)
         {
+            _connectionProcessor = connectionProcessor;
+            _entraTokenProvider = entraTokenProvider;
             _requestAccessor = requestAccessor;
             _responseAccessor = responseAccessor;
-            _connectionProcessor = connectionProcessor;
         }
 
         public override async Task<string> DoCall(
@@ -48,18 +51,34 @@ namespace AiCoreApi.SemanticKernel.Agents
             _responseAccessor.AddDebugMessage(DebugMessageSenderName, "DoCall Request", notificationPayload);
             var connections = await _connectionProcessor.List();
             var connection = GetConnection(_requestAccessor, _responseAccessor, connections, ConnectionType.AzureServiceBus, DebugMessageSenderName, connectionName: connectionName);
-            var serviceBusConnectionString = connection.Content["serviceBusConnectionString"];
 
-            await SendNotification(serviceBusConnectionString, queueOrTopicName, notificationPayload);
+            var accessType = connection.Content.ContainsKey("accessType") ? connection.Content["accessType"] : "apiKey";
+            ServiceBusClient serviceBusClient;
+
+            if (accessType == "apiKey")
+            {
+                var serviceBusConnectionString = connection.Content["serviceBusConnectionString"];
+                serviceBusClient = new ServiceBusClient(serviceBusConnectionString);
+            }
+            else
+            {
+                var accessToken = await _entraTokenProvider.GetAccessTokenObjectAsync(accessType, "https://servicebus.azure.net/.default");
+                var serviceBusNamespace = connection.Content["serviceBusNamespace"];
+                if (!serviceBusNamespace.StartsWith("https://"))
+                    serviceBusNamespace = $"https://{serviceBusNamespace}";
+
+                serviceBusClient = new ServiceBusClient(serviceBusNamespace, new StaticTokenCredential(accessToken.Token, accessToken.ExpiresOn));
+            }
+
+            await SendNotification(serviceBusClient, queueOrTopicName, notificationPayload);
 
             var responseMessage = $"Message sent to {queueOrTopicName}.";
             _responseAccessor.AddDebugMessage(DebugMessageSenderName, "DoCall Response", responseMessage);
             return responseMessage;
         }
 
-        private async Task SendNotification(string connectionString, string queueOrTopicName, string payload)
+        private async Task SendNotification(ServiceBusClient client, string queueOrTopicName, string payload)
         {
-            await using var client = new ServiceBusClient(connectionString);
             var sender = client.CreateSender(queueOrTopicName);
             try
             {

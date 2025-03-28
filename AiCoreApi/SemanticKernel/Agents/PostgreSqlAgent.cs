@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.SemanticKernel;
 using AiCoreApi.Models.DbModels;
 using System.Web;
@@ -19,17 +20,20 @@ namespace AiCoreApi.SemanticKernel.Agents
         }
 
         private readonly IConnectionProcessor _connectionProcessor;
+        private readonly IEntraTokenProvider _entraTokenProvider;
         private readonly RequestAccessor _requestAccessor;
         private readonly ResponseAccessor _responseAccessor;
 
         public PostgreSqlAgent(
             IConnectionProcessor connectionProcessor,
+            IEntraTokenProvider entraTokenProvider,
             RequestAccessor requestAccessor,
             ResponseAccessor responseAccessor,
             ExtendedConfig extendedConfig,
             ILogger<PostgreSqlAgent> logger) : base(requestAccessor, extendedConfig, logger)
         {
             _connectionProcessor = connectionProcessor;
+            _entraTokenProvider = entraTokenProvider;
             _requestAccessor = requestAccessor;
             _responseAccessor = responseAccessor; 
         }
@@ -46,17 +50,27 @@ namespace AiCoreApi.SemanticKernel.Agents
             _responseAccessor.AddDebugMessage(DebugMessageSenderName, "DoCall Request", sqlQuery);
             var connections = await _connectionProcessor.List();
             var connection = GetConnection(_requestAccessor, _responseAccessor, connections, ConnectionType.PostgreSql, DebugMessageSenderName, connectionName: connectionName);
-            var result = ExecuteScript(sqlQuery, connection.Content["connectionString"]);
+            var result = await ExecuteScript(sqlQuery, connection);
             _responseAccessor.AddDebugMessage(DebugMessageSenderName, "DoCall Response", result);
             return result;
         }
 
-        private string ExecuteScript(string script, string connectionString)
+        private async Task<string> ExecuteScript(string script, ConnectionModel connection)
         {
-            using var connection = new NpgsqlConnection(connectionString);
-            connection.Open();
-            using var command = new NpgsqlCommand(script, connection);
-            using var reader = command.ExecuteReader();
+            var connectionString = connection.Content["connectionString"];
+            var accessType = connection.Content.ContainsKey("accessType") ? connection.Content["accessType"] : "apiKey";
+            if (accessType != "apiKey")
+            {
+                var accessToken = await _entraTokenProvider.GetAccessTokenAsync(accessType, "https://ossrdbms-aad.database.windows.net/.default");
+                connectionString = connectionString.Contains("Password=")
+                    ? Regex.Replace(connectionString, @"Password=.*?;", $"Password={accessToken};")
+                    : connectionString += $";Password={accessToken}";
+            }
+
+            using var pgConnection = new NpgsqlConnection(connectionString);
+            pgConnection.Open();
+            using var command = new NpgsqlCommand(script, pgConnection);
+            using var reader = await command.ExecuteReaderAsync();
             var tables = new List<List<Dictionary<string, object>>>();
             do
             {
