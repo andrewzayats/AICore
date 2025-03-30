@@ -20,6 +20,11 @@ namespace AiCoreApi.Models.ViewModels
             public bool HasFiles() => Files != null && Files.Count > 0;
             public string GetFileNames() => string.Join(", ", Files?.Select(f => f.Name) ?? Array.Empty<string>());
             public string GetFileContents() => string.Join('\n', Files?.Select(f => f.GetFileContent()) ?? Array.Empty<string>());
+            public void AddFile(string name, string base64Data, int? size = null)
+            {
+                Files ??= new List<UploadFile>();
+                Files.Add(new UploadFile { Name = name, Size = size ?? Convert.FromBase64String(base64Data).Length, Base64Data = base64Data });
+            }
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public List<DebugMessage>? DebugMessages { get; set; }
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]

@@ -191,14 +191,7 @@ namespace AiCoreApi.SemanticKernel.Agents
             if (modalitiesArray.Contains("audio"))
             {
                 var audio = responseElement.GetProperty("data").GetString();
-                if (_responseAccessor.CurrentMessage.Files == null)
-                    _responseAccessor.CurrentMessage.Files = new List<Models.ViewModels.MessageDialogViewModel.UploadFile>();
-                _responseAccessor.CurrentMessage.Files.Add(new Models.ViewModels.MessageDialogViewModel.UploadFile
-                {
-                    Base64Data = audio,
-                    Name = "audio.mp3",
-                    Size = Convert.FromBase64String(audio).Length
-                });
+                _responseAccessor.CurrentMessage.AddFile("audio.mp3", audio);
             }
             _responseAccessor.AddDebugMessage(DebugMessageSenderName, "DoCall Response", responseContent);
             return result;

@@ -84,6 +84,12 @@ public class ExtendedConfig
     [Tooltip("Specifies if the Files section should be collapsed by default. When enabled, the Files section is collapsed by default, requiring the user to manually expand it.")]
     public bool CollapseFilesSection => GetValue<bool>("CollapseFilesSection", true);
 
+    [Category(CategoryAttribute.ConfigCategoryEnum.Common)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Boolean)]
+    [Description("Automatically render images in Chat")]
+    [Tooltip("Specifies if images should be automatically rendered in Chat. When enabled, images are automatically rendered in the Chat window.")]
+    public bool AutoRenderImages => GetValue<bool>("AutoRenderImages", false);
+
     [Category(CategoryAttribute.ConfigCategoryEnum.Ingestion)]
     [DataType(DataTypeAttribute.ConfigDataTypeEnum.Int)]
     [Description("Ingestion delay in hours")]
@@ -350,6 +356,36 @@ public class ExtendedConfig
     [Description("Log Agent PII info (input parameters/result)")]
     [Tooltip("Log Agent PII info specifies if the system should log Agent PII info. When enabled, the system logs Agent input parameters and result.")]
     public bool LogAgentPii => GetValue<bool>("LogAgentPii", false);
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.KeyVaultStorage)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.String)]
+    [Description("Key Vault Url")]
+    [Tooltip("The Key Vault Url is used to specify the URL of the Key Vault Storage. This URL is used to connect to the Key Vault Storage.")]
+    public string KeyVaultUrl => GetValue<string>("KeyVaultUrl", "");
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.KeyVaultStorage)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.String)]
+    [Description("Key Vault App Registration Tenant Id (Optional)")]
+    [Tooltip("The Key Vault App Tenant Id is used to authenticate the application with the Key Vault Storage. This Id is used to connect to the Key Vault Storage. In not specified, the system will use the Default Managed Identity.")]
+    public string KeyVaultAppTenantId => GetValue<string>("KeyVaultAppTenantId", "");
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.KeyVaultStorage)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.String)]
+    [Description("Key Vault App Registration Client Id (Optional)")]
+    [Tooltip("The Key Vault App Client Id is used to authenticate the application with the Key Vault Storage. This Id is used to connect to the Key Vault Storage. In not specified, the system will use the Default Managed Identity.")]
+    public string KeyVaultAppClientId => GetValue<string>("KeyVaultAppClientId", "");
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.KeyVaultStorage)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Password)]
+    [Description("Key Vault App Registration Client Secret (Optional)")]
+    [Tooltip("The Key Vault App Client Secret is used to authenticate the application with the Key Vault Storage. This Secret is used to connect to the Key Vault Storage. In not specified, the system will use the Default Managed Identity.")]
+    public string KeyVaultAppClientSecret => GetValue<string>("KeyVaultAppClientSecret", "");
+
+    [Category(CategoryAttribute.ConfigCategoryEnum.KeyVaultStorage)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Boolean)]
+    [Description("Use Key Vault App Registration")]
+    [Tooltip("Specifies if the system should use the Key Vault App Registration. When enabled, the system uses the Key Vault App Registration for authentication.")]
+    public bool UseKeyVaultAppRegistration => GetValue<bool>("UseKeyVaultAppRegistration", false);
 }
 
 [AttributeUsage(AttributeTargets.Property)]
@@ -431,5 +467,7 @@ public class CategoryAttribute : Attribute, IAttributeHandler
         Nuget,
         [System.ComponentModel.Description("Logging")]
         Logging,
+        [System.ComponentModel.Description("Key Vault Storage")]
+        KeyVaultStorage,
     }
 }

@@ -7,6 +7,7 @@ using System.Web;
 using Azure;
 using Azure.AI.DocumentIntelligence;
 using Azure.Core.Pipeline;
+using Azure.Core;
 
 namespace AiCoreApi.SemanticKernel.Agents
 {
@@ -29,12 +30,14 @@ namespace AiCoreApi.SemanticKernel.Agents
             public const string StringIndexType = "stringIndexType";
         }
 
+        private readonly IEntraTokenProvider _entraTokenProvider;
         private readonly RequestAccessor _requestAccessor;
         private readonly ResponseAccessor _responseAccessor;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IConnectionProcessor _connectionProcessor;
 
         public OcrClassifyDocumentAgent(
+            IEntraTokenProvider entraTokenProvider,
             RequestAccessor requestAccessor,
             ResponseAccessor responseAccessor,
             IHttpClientFactory httpClientFactory,
@@ -42,6 +45,7 @@ namespace AiCoreApi.SemanticKernel.Agents
             ExtendedConfig extendedConfig,
             ILogger<OcrClassifyDocumentAgent> logger) : base(requestAccessor, extendedConfig, logger)
         {
+            _entraTokenProvider = entraTokenProvider;
             _requestAccessor = requestAccessor;
             _responseAccessor = responseAccessor;
             _httpClientFactory = httpClientFactory;
@@ -79,13 +83,15 @@ namespace AiCoreApi.SemanticKernel.Agents
             }
 
             var endpoint = connection.Content["endpoint"];
-            var apiKey = connection.Content["apiKey"];
+            var accessType = connection.Content.ContainsKey("accessType") ? connection.Content["accessType"] : "apiKey";
+            var apiKey = connection.Content.ContainsKey("apiKey") ? connection.Content["apiKey"] : "";
 
             _responseAccessor.AddDebugMessage(DebugMessageSenderName, "OCR Classifying", $"{endpoint}, {classifierId}, {apiKey} \r\nStringIndexType:{stringIndexType} SplitMode:{splitMode} Pages:{pages}");
 
             var result = await ProcessFileAsync(
                 endpoint, 
-                classifierId, 
+                classifierId,
+                accessType,
                 apiKey,
                 base64Image.StripBase64(),
                 stringIndexType,
@@ -110,6 +116,7 @@ namespace AiCoreApi.SemanticKernel.Agents
         private async Task<string?> ProcessFileAsync(
             string modelUrl, 
             string classifierId, 
+            string accessType,
             string apiKey, 
             string base64Data, 
             string? stringIndexType, 
@@ -117,12 +124,31 @@ namespace AiCoreApi.SemanticKernel.Agents
             string? pages)
         {
             var file = Convert.FromBase64String(base64Data);
+            AzureKeyCredential? keyCredential = null;
+            TokenCredential? tokenCredential = null;
+
+            if (accessType.Equals("apiKey", StringComparison.OrdinalIgnoreCase))
+            {
+                if (string.IsNullOrEmpty(apiKey))
+                    throw new ArgumentException("API key is required for apiKey access type.");
+
+                keyCredential = new AzureKeyCredential(apiKey);
+            }
+            else
+            {
+                var accessToken = await _entraTokenProvider.GetAccessTokenObjectAsync(accessType, "https://cognitiveservices.azure.com/.default");
+                tokenCredential = new StaticTokenCredential(accessToken.Token, accessToken.ExpiresOn);
+            }
+
             _httpClientFactory.CreateClient("");
             var clientOptions = new DocumentIntelligenceClientOptions
             {
                 Transport = new HttpClientTransport(_httpClientFactory.CreateClient("RetryClient"))
             };
-            var client = new DocumentIntelligenceClient(new Uri(modelUrl), new AzureKeyCredential(apiKey), clientOptions);
+            var client = keyCredential != null
+                ? new DocumentIntelligenceClient(new Uri(modelUrl), keyCredential, clientOptions)
+                : new DocumentIntelligenceClient(new Uri(modelUrl), tokenCredential!, clientOptions);
+
             var content = new ClassifyDocumentContent
             {
                 Base64Source = BinaryData.FromBytes(file),

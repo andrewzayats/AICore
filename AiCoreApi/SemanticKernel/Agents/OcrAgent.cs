@@ -9,6 +9,7 @@ using Azure.Core.Pipeline;
 using Azure;
 using Azure.AI.DocumentIntelligence;
 using Newtonsoft.Json;
+using Azure.Core;
 
 namespace AiCoreApi.SemanticKernel.Agents
 {
@@ -59,12 +60,14 @@ namespace AiCoreApi.SemanticKernel.Agents
             public const string Markdown = "markdown";
         }
 
+        private readonly IEntraTokenProvider _entraTokenProvider;
         private readonly RequestAccessor _requestAccessor;
         private readonly ResponseAccessor _responseAccessor;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IConnectionProcessor _connectionProcessor;
 
         public OcrAgent(
+            IEntraTokenProvider entraTokenProvider,
             RequestAccessor requestAccessor,
             ResponseAccessor responseAccessor,
             IHttpClientFactory httpClientFactory,
@@ -72,6 +75,7 @@ namespace AiCoreApi.SemanticKernel.Agents
             ExtendedConfig extendedConfig,
             ILogger<OcrAgent> logger) : base(requestAccessor, extendedConfig, logger)
         {
+            _entraTokenProvider = entraTokenProvider;
             _requestAccessor = requestAccessor;
             _responseAccessor = responseAccessor;
             _httpClientFactory = httpClientFactory;
@@ -109,24 +113,44 @@ namespace AiCoreApi.SemanticKernel.Agents
 
             var endpoint = connection.Content["endpoint"];
             var modelName = connection.Content["modelName"];
-            var apiKey = connection.Content["apiKey"];
-            _responseAccessor.AddDebugMessage(DebugMessageSenderName, "OCR Processing", $"{endpoint}, {modelName}, {apiKey} \r\nFormat: {outputFormat} Options:{string.Join(", ", optionsList)} Output:{string.Join(", ", outputList)}");
-            var result = await ProcessFile(endpoint, modelName, apiKey, optionsList, outputList, outputFormat, base64Image.StripBase64());
+            var accessType = connection.Content.ContainsKey("accessType") ? connection.Content["accessType"] : "apiKey";
+            var apiKey = connection.Content.ContainsKey("apiKey") ? connection.Content["apiKey"] : "";
+            _responseAccessor.AddDebugMessage(DebugMessageSenderName, "OCR Processing", $"{endpoint}, {modelName}, {accessType}, {apiKey} \r\nFormat: {outputFormat} Options:{string.Join(", ", optionsList)} Output:{string.Join(", ", outputList)}");
+            var result = await ProcessFile(endpoint, modelName, apiKey, accessType, optionsList, outputList, outputFormat, base64Image.StripBase64());
             _responseAccessor.AddDebugMessage(DebugMessageSenderName, "OCR Processing Result", result);
-
             return result;
         }
 
 
-        private async Task<string?> ProcessFile(string modelUrl, string modelName, string apiKey, List<string> optionsList, List<string> outputList, string outputFormat, string base64Data)
+        private async Task<string?> ProcessFile(string modelUrl, string modelName, string apiKey, string accessType, List<string> optionsList, List<string> outputList, string outputFormat, string base64Data)
         {
             var file = Convert.FromBase64String(base64Data);
+
+            AzureKeyCredential? keyCredential = null;
+            TokenCredential? tokenCredential = null;
+
+            if (accessType.Equals("apiKey", StringComparison.OrdinalIgnoreCase))
+            {
+                if (string.IsNullOrEmpty(apiKey))
+                    throw new ArgumentException("API key is required for apiKey access type.");
+
+                keyCredential = new AzureKeyCredential(apiKey);
+            }
+            else
+            {
+                var accessToken = await _entraTokenProvider.GetAccessTokenObjectAsync(accessType, "https://cognitiveservices.azure.com/.default");
+                tokenCredential = new StaticTokenCredential(accessToken.Token, accessToken.ExpiresOn);
+            }
 
             var clientOptions = new DocumentIntelligenceClientOptions
             {
                 Transport = new HttpClientTransport(_httpClientFactory.CreateClient("RetryClient"))
-            };
-            var client = new DocumentIntelligenceClient(new Uri(modelUrl), new AzureKeyCredential(apiKey), clientOptions);
+            }; 
+            
+            var client = keyCredential != null
+                ? new DocumentIntelligenceClient(new Uri(modelUrl), keyCredential, clientOptions)
+                : new DocumentIntelligenceClient(new Uri(modelUrl), tokenCredential!, clientOptions);
+
             var content = new AnalyzeDocumentContent
             {
                 Base64Source = BinaryData.FromBytes(file),
