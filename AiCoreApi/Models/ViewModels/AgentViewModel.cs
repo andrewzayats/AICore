@@ -64,5 +64,6 @@ namespace AiCoreApi.Models.ViewModels
         AudioPromptAgent = 30,
         OcrClassifyDocument = 31,
         WebCrawler = 32,
+        StabilityAiImages = 33,
     }
 }

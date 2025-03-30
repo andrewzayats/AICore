@@ -84,6 +84,12 @@ public class ExtendedConfig
     [Tooltip("Specifies if the Files section should be collapsed by default. When enabled, the Files section is collapsed by default, requiring the user to manually expand it.")]
     public bool CollapseFilesSection => GetValue<bool>("CollapseFilesSection", true);
 
+    [Category(CategoryAttribute.ConfigCategoryEnum.Common)]
+    [DataType(DataTypeAttribute.ConfigDataTypeEnum.Boolean)]
+    [Description("Automatically render images in Chat")]
+    [Tooltip("Specifies if images should be automatically rendered in Chat. When enabled, images are automatically rendered in the Chat window.")]
+    public bool AutoRenderImages => GetValue<bool>("AutoRenderImages", false);
+
     [Category(CategoryAttribute.ConfigCategoryEnum.Ingestion)]
     [DataType(DataTypeAttribute.ConfigDataTypeEnum.Int)]
     [Description("Ingestion delay in hours")]
