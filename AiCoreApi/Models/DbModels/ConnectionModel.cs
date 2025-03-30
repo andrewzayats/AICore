@@ -41,6 +41,7 @@ namespace AiCoreApi.Models.DbModels
         RabbitMq = 20,
         AzureOpenAiLlmCarousel = 21,
         DeepSeekLlm = 22,
+        StabilityAi = 23,
     }
 
     public static class ConnectionTypeExtensions

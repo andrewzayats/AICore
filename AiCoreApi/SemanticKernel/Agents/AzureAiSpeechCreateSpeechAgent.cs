@@ -122,14 +122,8 @@ namespace AiCoreApi.SemanticKernel.Agents
             var bytes = memoryStream.ToArray();
             var result = "Done";
             _responseAccessor.AddDebugMessage(DebugMessageSenderName, "DoCall Result", result);
-            if (_responseAccessor.CurrentMessage.Files == null)
-                _responseAccessor.CurrentMessage.Files = new List<Models.ViewModels.MessageDialogViewModel.UploadFile>();
-            _responseAccessor.CurrentMessage.Files.Add(new Models.ViewModels.MessageDialogViewModel.UploadFile
-            {
-                Base64Data = Convert.ToBase64String(bytes),
-                Name = "audio" + (quality.Contains("mp3") ? ".mp3" : ".wav"),
-                Size = bytes.Length
-            });
+            var fileName = "audio" + (quality.Contains("mp3") ? ".mp3" : ".wav");
+            _responseAccessor.CurrentMessage.AddFile(fileName, Convert.ToBase64String(bytes), bytes.Length);
             return result;
         }
 
