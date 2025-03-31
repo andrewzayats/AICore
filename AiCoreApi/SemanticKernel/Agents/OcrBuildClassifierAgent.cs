@@ -37,7 +37,6 @@ namespace AiCoreApi.SemanticKernel.Agents
             public const string BaseClassifierId = "baseClassifierId";
             public const string ContainerName = "containerName";
             public const string DocumentTypes = "documentTypes";
-            public const string DocumentIntelligenceToStorageAccountAuthMethod = "documentIntelligenceToStorageAccountAuthMethod";
         }
 
         private readonly IEntraTokenProvider _entraTokenProvider;
