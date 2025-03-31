@@ -424,7 +424,7 @@ namespace AiCoreApi.SemanticKernel.Agents
 
                 foreach (var runtimeFile in runtimeItem.Items.Where(i =>
                      i.Contains("native/") &&
-                     (i.Contains("linux-x64") || i.Contains("win-x64") || i.Contains("osx-x64")) &&
+                     (i.Contains("linux-x64") || i.Contains("win-x64")) &&
                      (i.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)
                       || i.EndsWith(".so", StringComparison.OrdinalIgnoreCase)
                       || i.EndsWith(".dylib", StringComparison.OrdinalIgnoreCase))))
