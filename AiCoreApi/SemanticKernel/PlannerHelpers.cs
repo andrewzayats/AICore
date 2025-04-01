@@ -50,6 +50,7 @@ namespace AiCoreApi.SemanticKernel
         private readonly IAudioPromptAgent _audioPromptAgent;
         private readonly IWebCrawlerAgent _webCrawlerAgent;
         private readonly IStabilityAiImagesAgent _stabilityAiImagesAgent;
+        private readonly IOcrBuildClassifierAgent _ocrBuildClassifierAgent;
 
         public PlannerHelpers(
             RequestAccessor requestAccessor,
@@ -80,7 +81,8 @@ namespace AiCoreApi.SemanticKernel
             IRabbitMqNotificationAgent rabbitMqNotificationAgent,
             IAudioPromptAgent audioPromptAgent,
             IWebCrawlerAgent webCrawlerAgent,
-            IStabilityAiImagesAgent stabilityAiImagesAgent
+            IStabilityAiImagesAgent stabilityAiImagesAgent,
+            IOcrBuildClassifierAgent ocrBuildClassifierAgent
             )
         {
             _requestAccessor = requestAccessor;
@@ -112,6 +114,7 @@ namespace AiCoreApi.SemanticKernel
             _audioPromptAgent = audioPromptAgent;
             _webCrawlerAgent = webCrawlerAgent;
             _stabilityAiImagesAgent = stabilityAiImagesAgent;
+            _ocrBuildClassifierAgent = ocrBuildClassifierAgent;
         }
 
         private List<AgentModel>? _agentsList;
@@ -236,7 +239,8 @@ namespace AiCoreApi.SemanticKernel
                 { AgentType.RabbitMqNotification, _rabbitMqNotificationAgent },
                 { AgentType.AudioPromptAgent, _audioPromptAgent },
                 { AgentType.WebCrawler, _webCrawlerAgent },
-                { AgentType.StabilityAiImages, _stabilityAiImagesAgent }
+                { AgentType.StabilityAiImages, _stabilityAiImagesAgent },
+                { AgentType.OcrBuildClassifierAgent, _ocrBuildClassifierAgent },
             };
             return agentMapping;
         }

@@ -64,5 +64,6 @@ namespace AiCoreApi.Models.DbModels
         OcrClassifyDocument = 31,
         WebCrawler = 32,
         StabilityAiImages = 33,
+        OcrBuildClassifierAgent = 34
     }
 }
