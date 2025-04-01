@@ -58,8 +58,8 @@ namespace AiCoreApi.SemanticKernel.Agents
         private async Task<string> ExecuteScript(string script, ConnectionModel connection)
         {
             var connectionString = connection.Content["connectionString"];
-            var accessType = connection.Content.ContainsKey("accessType") ? connection.Content["accessType"] : "apiKey";
-            if (accessType != "apiKey")
+            var accessType = connection.Content.ContainsKey("accessType") ? connection.Content["accessType"] : "connectionString";
+            if (accessType != "connectionString")
             {
                 var accessToken = await _entraTokenProvider.GetAccessTokenAsync(accessType, "https://ossrdbms-aad.database.windows.net/.default");
                 connectionString = connectionString.Contains("Password=")

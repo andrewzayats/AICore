@@ -56,9 +56,9 @@ namespace AiCoreApi.SemanticKernel.Agents
         private async Task<string> ExecuteScript(string script, ConnectionModel connection)
         {
             var connectionString = connection.Content["connectionString"];
-            var accessType = connection.Content.ContainsKey("accessType") ? connection.Content["accessType"] : "apiKey";
+            var accessType = connection.Content.ContainsKey("accessType") ? connection.Content["accessType"] : "connectionString";
             using var sqlServerConnection = new SqlConnection(connectionString);
-            if (accessType != "apiKey")
+            if (accessType != "connectionString")
             {
                 var accessToken = await _entraTokenProvider.GetAccessTokenAsync(accessType, "https://database.windows.net/.default");
                 sqlServerConnection.AccessToken = accessToken;
