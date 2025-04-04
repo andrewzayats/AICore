@@ -56,12 +56,12 @@ SET aicore_session_context.login_type = '{1}';
             _responseAccessor.AddDebugMessage(DebugMessageSenderName, "DoCall Request", sqlQuery);
             var connections = await _connectionProcessor.List();
             var connection = GetConnection(_requestAccessor, _responseAccessor, connections, ConnectionType.PostgreSql, DebugMessageSenderName, connectionName: connectionName);
-            var result = await ExecuteScript(sqlQuery, connection);
+            var result = await ExecuteScript(sqlQuery, connection, parameters);
             _responseAccessor.AddDebugMessage(DebugMessageSenderName, "DoCall Response", result);
             return result;
         }
 
-        private async Task<string> ExecuteScript(string script, ConnectionModel connection)
+        private async Task<string> ExecuteScript(string script, ConnectionModel connection, Dictionary<string, string> parameters)
         {
             var connectionString = connection.Content["connectionString"];
             var accessType = connection.Content.ContainsKey("accessType") ? connection.Content["accessType"] : "connectionString";
@@ -75,7 +75,7 @@ SET aicore_session_context.login_type = '{1}';
             }
 
             var addSessionContext = false;
-            if (connection.Content.TryGetValue("addSessionContext", out var addSessionContextRaw))
+            if (parameters.TryGetValue("addSessionContext", out var addSessionContextRaw))
             {
                 bool.TryParse(addSessionContextRaw, out addSessionContext);
             }
