@@ -268,15 +268,12 @@ namespace AiCoreApi.SemanticKernel.Agents
                         });
                     }
                 }
-                // Angle, Width, Height
-                foreach (var keyValuePair in result.KeyValuePairs)
+
+                for (var i = 0; i < result.Pages.Count; i++)
                 {
-                    var pageId = keyValuePair.Key.BoundingRegions[0].PageNumber - 1;
-                    var ocrPage = result.Pages[pageId];
-                    var page = ocrResult.Pages[pageId];
-                    page.Angle = ocrPage.Angle ?? 0;
-                    page.Width = ocrPage.Width ?? 0;
-                    page.Height = ocrPage.Height ?? 0;
+                    ocrResult.Pages[i].Angle = result.Pages[i].Angle ?? 0;
+                    ocrResult.Pages[i].Width = result.Pages[i].Width ?? 0;
+                    ocrResult.Pages[i].Height = result.Pages[i].Height ?? 0;
                 }
             }
 
